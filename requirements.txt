@@ -4,4 +4,12 @@ plotly
 fpdf2
 numpy
 icalendar
-pptx
+python-pptx
+openpyxl
+xlsxwriter
+matplotlib
+streamlit-extras
+streamlit-plotly-events
+streamlit-aggrid
+streamlit-option-menu
+streamlit-lottie
