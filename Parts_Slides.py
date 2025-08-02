@@ -339,7 +339,7 @@ def generate_parts_slides(title, df, list, df_all_locations):
         chart = slide.shapes.add_picture(histogram_path, left=Inches(13.28), top=Inches(5.58), height=Inches(8.42), width=Inches(11.8))
         print(f"Chart image {chart} added to slide successfully!")  
 
-    prs.save(f'{title}_{timestamp}.pptx')
+    prs.save(f'presentations/Parts/{title}_{timestamp}.pptx')
 
         # Create histogram
 

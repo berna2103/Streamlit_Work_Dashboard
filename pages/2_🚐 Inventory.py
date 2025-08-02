@@ -317,7 +317,7 @@ if uploaded_file is not None:
         worksheet.insert_image(insert_row, insert_col, donut_img_path,
                                {'x_scale': 0.7, 'y_scale': 0.7})
 
-        insert_col_bar = insert_col + 10
+        insert_col_bar = insert_col + 4
         worksheet.insert_image(insert_row, insert_col_bar, bar_img_path,
                                {'x_scale': 0.7, 'y_scale': 0.7})
 

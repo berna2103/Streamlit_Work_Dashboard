@@ -120,6 +120,7 @@ def generate_service_contract_slides(df_data: pd.DataFrame, ppt_title: str):
     prs.slide_width = Inches(26.66)
     prs.slide_height = Inches(15)
     font_name = 'Calibri'
+    image_folder_ = './images/'
     image_folder = './images/Cards'
     output_graph_dir = 'graphs/service_dashboard'
     os.makedirs(output_graph_dir, exist_ok=True)
@@ -129,11 +130,11 @@ def generate_service_contract_slides(df_data: pd.DataFrame, ppt_title: str):
     # --- 1. Title Slide ---
     slide = prs.slides.add_slide(slide_layout)
     try:
-        if os.path.exists(image_folder) and os.listdir(image_folder):
-            images_in_folder = [f for f in os.listdir(image_folder) if f.lower().endswith(('.png', '.jpg', '.jpeg', '.gif'))]
+        if os.path.exists(image_folder_) and os.listdir(image_folder_):
+            images_in_folder = [f for f in os.listdir(image_folder_) if f.lower().endswith(('.png', '.jpg', '.jpeg', '.gif'))]
             if images_in_folder:
                 random_image = random.choice(images_in_folder)
-                image_path = os.path.join(image_folder, random_image)
+                image_path = os.path.join(image_folder_, random_image)
                 slide.shapes.add_picture(image_path, Inches(0), Inches(0), prs.slide_width, prs.slide_height)
             else:
                 st.warning("No image files found in the 'images' folder for the title slide background.")
@@ -430,7 +431,7 @@ def generate_service_contract_slides(df_data: pd.DataFrame, ppt_title: str):
 
     # Save the presentation
     output_filename = f'{ppt_title.replace(" ", "_")}_{timestamp}.pptx'
-    prs.save(output_filename)
+    prs.save(f"presentations/Service_Agreements/{output_filename}")
     return output_filename
 
 
@@ -921,7 +922,8 @@ if 'uploaded_df' in st.session_state and not st.session_state['uploaded_df'].emp
             with st.spinner('Generating PowerPoint...'):
                 try:
                     output_ppt_file = generate_service_contract_slides(df_display, "Radiation Therapy Service Contracts Dashboard")
-                    with open(output_ppt_file, "rb") as file:
+                    st.write(f"PowerPoint generated: {output_ppt_file}")
+                    with open(f"presentations/Service_Agreements/{output_ppt_file}", "rb") as file:
                         st.sidebar.download_button(
                             label="Download Service Contract Slides",
                             data=file,

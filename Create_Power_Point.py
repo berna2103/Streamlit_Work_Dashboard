@@ -250,7 +250,7 @@ def add_slide_with_chart_and_text(slide_title, df, locations, total_hours):
                 add_rectangle_background(slide,left=Inches(0.22),top=Inches(2.52),width=Inches(26.21),height=Inches(12),BGcolor=RGBColor(255,255,255),border=0.5)
                 print(f"Chart image {chart} and Pie {pie} added to slide successfully!")
     
-    prs.save(f'{slide_title}_{timestamp}.pptx')
+    prs.save(f'presentations/Downtime/{slide_title}_{timestamp}.pptx')
 
 
     # Debugging: Check if the image file is saved properly
