@@ -1,0 +1,7 @@
+streamlit
+pandas
+plotly
+fpdf2
+numpy
+icalendar
+pptx
