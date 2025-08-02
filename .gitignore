@@ -205,3 +205,9 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+.venv/
+venv
+images/*
+presentations/*
+pm_task_combined_v06.csv
