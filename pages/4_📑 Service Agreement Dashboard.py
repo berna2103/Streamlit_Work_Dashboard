@@ -247,7 +247,6 @@ def generate_service_contract_slides(df_data: pd.DataFrame, ppt_title: str):
             add_formatted_text_line(slide, text_box_left, detail_start_top_ppt + line_height_ppt, text_box_width, line_height_ppt, font_name, Pt(25), RGBColor(50,50,50), [("Age: ", True), (f"{device.get('Device Age', 'N/A')} years", False)], text_align=PP_ALIGN.CENTER)
             add_formatted_text_line(slide, text_box_left, detail_start_top_ppt + 2*line_height_ppt, text_box_width, line_height_ppt, font_name, Pt(25), RGBColor(50,50,50), [("Renew In: ", True), (f"{device.get('Weeks To Renewal', 'N/A')} weeks", False)], text_align=PP_ALIGN.CENTER)
             
-            # --- MODIFIED: Draw a thin rectangle to act as a line ---
             line_top_ppt = detail_start_top_ppt + 3 * line_height_ppt + Inches(0.4)
             line_shape = slide.shapes.add_shape(
                 MSO_SHAPE.RECTANGLE, text_box_left, line_top_ppt, text_box_width, Pt(1)
@@ -255,7 +254,7 @@ def generate_service_contract_slides(df_data: pd.DataFrame, ppt_title: str):
             line_fill = line_shape.fill
             line_fill.solid()
             line_fill.fore_color.rgb = RGBColor(200, 200, 200)
-            line_shape.line.fill.background() # No border for the rectangle
+            line_shape.line.fill.background()
 
             customs_acceptance_date_str = device.get('Customs Acceptance Date', pd.NaT).strftime('%m/%d/%Y') if pd.notna(device.get('Customs Acceptance Date')) else "N/A"
             warranty_end_str = device.get('Warranty End Date', pd.NaT).strftime('%m/%d/%Y') if pd.notna(device.get('Warranty End Date')) else 'N/A'
@@ -281,6 +280,11 @@ st.markdown(f"""
     .stButton>button {{ background-color: {PRIMARY_COLOR}; color: white; border-radius: 8px; border: none; }}
     .stButton>button:hover {{ background-color: {SECONDARY_COLOR}; }}
     .st-emotion-cache-1r6dm1s {{ background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05); padding: 15px; }}
+    .device-card-image {{
+        display: flex;
+        justify-content: center;
+        padding: 1rem 0;
+    }}
     </style>
 """, unsafe_allow_html=True)
 
@@ -363,7 +367,6 @@ if 'uploaded_df' in st.session_state and not st.session_state['uploaded_df'].emp
         st.header("Analytics")
         tab1, tab2, tab3, tab4 = st.tabs(["Contract Status", "Device Age", "Upcoming Renewals", "Financials"])
         with tab1:
-            # --- MODIFIED: Robustly create the dataframe for the pie chart ---
             status_counts = df_display['Contract Status'].value_counts().rename_axis('Status').reset_index(name='Count')
             fig = px.pie(status_counts, values='Count', names='Status', title='Contract Status Distribution', color_discrete_sequence=COLOR_SEQUENCE)
             st.plotly_chart(fig, use_container_width=True)
@@ -398,8 +401,6 @@ if 'uploaded_df' in st.session_state and not st.session_state['uploaded_df'].emp
 
         st.markdown("---")
         st.header("Machine Fleet Overview")
-        # NOTE: For images to appear, create a folder named 'images/Cards' next to your script.
-        # Inside, place PNG files named after the sanitized product name, e.g., 'Versa_HD.png'.
         cols_per_row = 3
         for i in range(0, len(df_display), cols_per_row):
             cols = st.columns(cols_per_row)
@@ -407,8 +408,12 @@ if 'uploaded_df' in st.session_state and not st.session_state['uploaded_df'].emp
                 with cols[j]:
                     with st.container(border=True):
                         st.markdown(f"<h3 style='text-align: center; color: {PRIMARY_COLOR};'>{device.get('Display Product Name', 'N/A')}</h3>", unsafe_allow_html=True)
+                        
+                        st.markdown('<div class="device-card-image">', unsafe_allow_html=True)
                         img_path = get_sanitized_image_path(device.get('Installed Product'))
-                        st.image(img_path if os.path.exists(img_path) else "https://placehold.co/150x150/e0e0e0/A0A0A0?text=No+Image", use_column_width='auto')
+                        st.image(img_path if os.path.exists(img_path) else "https://placehold.co/150x150/e0e0e0/A0A0A0?text=No+Image", width=120)
+                        st.markdown('</div>', unsafe_allow_html=True)
+
                         st.markdown(f"""
                         <div style="text-align: center;">
                             <p><strong>Contract Expires:</strong> {device.get('Contract End Date', pd.NaT).strftime('%m/%d/%Y') if pd.notna(device.get('Contract End Date')) else 'N/A'}</p>
@@ -425,14 +430,9 @@ if 'uploaded_df' in st.session_state and not st.session_state['uploaded_df'].emp
         if st.sidebar.button('Generate Service Contract Slides'):
             with st.spinner('Generating PowerPoint... This may take a moment.'):
                 try:
-                    # The function now returns an in-memory buffer
                     ppt_buffer = generate_service_contract_slides(df_display, "Radiation Therapy Service Contracts Dashboard")
-                    
-                    # Define the filename for the download
                     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
                     output_ppt_file = f'Service_Contracts_Dashboard_{timestamp}.pptx'
-
-                    # The download button now uses the buffer directly
                     st.sidebar.download_button(
                         label="Download PowerPoint",
                         data=ppt_buffer,
