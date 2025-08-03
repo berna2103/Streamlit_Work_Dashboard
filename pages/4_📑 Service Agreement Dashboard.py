@@ -120,10 +120,20 @@ def generate_service_contract_slides(df_data: pd.DataFrame, ppt_title: str):
     prs.slide_width = Inches(26.66)
     prs.slide_height = Inches(15)
     font_name = 'Calibri'
-    image_folder_ = './images/'
-    image_folder = './images/Cards'
+
+        # Define base paths
+    image_folder_ = 'images'
+    image_folder = os.path.join(image_folder, 'Cards')
     output_graph_dir = 'graphs/service_dashboard'
+    output_ppt_dir = 'presentations/Service_Agreements' # Define the PowerPoint output directory
+
+    # Create directories if they don't exist. This is the key fix.
     os.makedirs(output_graph_dir, exist_ok=True)
+    os.makedirs(output_ppt_dir, exist_ok=True) 
+    # image_folder_ = './images/'
+    # image_folder = './images/Cards'
+    # output_graph_dir = 'graphs/service_dashboard'
+    # os.makedirs(output_graph_dir, exist_ok=True)
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     slide_layout = prs.slide_layouts[6]
 
@@ -921,16 +931,24 @@ if 'uploaded_df' in st.session_state and not st.session_state['uploaded_df'].emp
         if st.sidebar.button('Generate Service Contract Slides'):
             with st.spinner('Generating PowerPoint...'):
                 try:
-                    output_ppt_file = generate_service_contract_slides(df_display, "Radiation Therapy Service Contracts Dashboard")
-                    st.write(f"PowerPoint generated: {output_ppt_file}")
-                    with open(f"presentations/Service_Agreements/{output_ppt_file}", "rb") as file:
+                    # The function now returns the full path to the file
+                    output_ppt_filepath = generate_service_contract_slides(df_display, "Radiation Therapy Service Contracts Dashboard")
+
+                    # For the user-facing download, we only need the filename part
+                    download_filename = os.path.basename(output_ppt_filepath)
+
+                    st.write(f"PowerPoint generated: {download_filename}")
+
+                    # Open the file using the full path
+                    with open(output_ppt_filepath, "rb") as file:
                         st.sidebar.download_button(
                             label="Download Service Contract Slides",
                             data=file,
-                            file_name=output_ppt_file,
+                            file_name=download_filename, # Use just the filename for the download
                             mime="application/vnd.openxmlformats-officedocument.presentationml.presentation"
                         )
-                    st.sidebar.success(f"PowerPoint '{output_ppt_file}' generated successfully!")
+                    st.sidebar.success(f"PowerPoint '{download_filename}' generated successfully!")
+                    # --- END MODIFICATION ---
                 except Exception as e:
                     st.sidebar.error(f"Error generating PowerPoint: {e}")
                     st.sidebar.info("Please ensure 'kaleido' is installed (`pip install kaleido`) for graph export.")
