@@ -1,7 +1,7 @@
 streamlit
 pandas
 plotly
-fpdf2
+fpdf
 numpy
 icalendar
 python-pptx
@@ -13,3 +13,4 @@ streamlit-plotly-events
 streamlit-aggrid
 streamlit-option-menu
 streamlit-lottie
+kaleido
