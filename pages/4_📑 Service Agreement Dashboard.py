@@ -898,9 +898,9 @@ if 'uploaded_df' in st.session_state and not st.session_state['uploaded_df'].emp
                         img_col1, img_col2, img_col3 = st.columns([1, 1, 1])
                         with img_col2:
                             if os.path.exists(full_image_path_on_disk):
-                                st.image(full_image_path_on_disk, width=100, use_column_width=False, output_format="PNG")
+                                st.image(full_image_path_on_disk, width=100, use_container_width=False, output_format="PNG")
                             else:
-                                st.image("https://placehold.co/100x100/A0A0A0/FFFFFF?text=No+Image", width=100, use_column_width=False, output_format="PNG")
+                                st.image("https://placehold.co/100x100/A0A0A0/FFFFFF?text=No+Image", width=100, use_container_width=False, output_format="PNG")
                                 st.warning(f"Image not found for '{first_part_for_image}'. Looked for: {full_image_path_on_disk}")
 
                             st.markdown(f"""
