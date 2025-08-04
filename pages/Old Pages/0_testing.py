@@ -379,9 +379,9 @@ else:
                     if not monthly_data.empty:
                         col1, col2 = st.columns(2)
                         with col1:
-                            st.plotly_chart(create_bar_chart(monthly_data), use_container_width=True)
+                            st.plotly_chart(create_bar_chart(monthly_data), use_container_width=True, key=f"bar_{location}")
                         with col2:
-                            st.plotly_chart(create_pie_chart(iaat_downtime, total_hours), use_container_width=True)
+                            st.plotly_chart(create_pie_chart(iaat_downtime, total_hours), use_container_width=True, key=f"pie_{location}")
                         st.caption('*IAAT - Inside Agreed Available Time | *OAAT - Outside Agreed Available Time')
                     else:
                         st.info("No valid date data available to display charts.")
