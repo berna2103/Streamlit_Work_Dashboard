@@ -227,11 +227,11 @@ def generate_powerpoint(df, locations, total_hours, agreement_target):
             monthly_data = filtered_df.groupby('month')[['IAAT', 'OAAT']].sum().reset_index()
             monthly_data['month'] = monthly_data['month'].dt.to_timestamp()
             
-            bar_fig = create_bar_chart(monthly_data)
+            bar_fig = create_bar_chart(monthly_data, key=f"bar_{location}")
             bar_img_bytes = bar_fig.to_image(format="png", width=800, height=450)
             slide.shapes.add_picture(io.BytesIO(bar_img_bytes), Inches(0.5), Inches(4.5), width=Inches(7))
         
-        pie_fig = create_pie_chart(iaat_downtime, total_hours)
+        pie_fig = create_pie_chart(iaat_downtime, total_hours, key=f"pie_{location}")
         pie_img_bytes = pie_fig.to_image(format="png", width=500, height=400)
         slide.shapes.add_picture(io.BytesIO(pie_img_bytes), Inches(9.0), Inches(4.5), width=Inches(5))
 
