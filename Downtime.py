@@ -16,7 +16,7 @@ import warnings
 import requests
 import os
 import random
-
+import sys
 # --- Page and Style Configuration ---
 
 # Set title and configure Streamlit page layout
@@ -30,7 +30,7 @@ DOWNTIME_URL = 'https://elekta.lightning.force.com/lightning/r/Report/00O6g00000
 QLIK_URL = 'https://qliksense.elekta.com/sense/app/6b74e786-8876-4f7a-8444-478355cc7b84/sheet/401b848c-b981-4694-abae-b1e347a1dfd8/state/analysis'
 HOURS_8_TO_9 = 3276  # 252 days * 13 hrs
 HOURS_8_TO_5 = 2268  # 252 days * 9 hrs
-FONT_NAME = 'Calibri'
+FONT_NAME = 'Roboto'
 IMAGE_FOLDER = 'images'
 
 

@@ -14,7 +14,7 @@ import os
 prs = Presentation()
 directory = 'graphs'
 timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-font_name = 'Calibri'
+font_name = 'Roboto'
 image_folder = './images'
 images = os.listdir(image_folder)
 
