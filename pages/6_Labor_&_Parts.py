@@ -386,7 +386,7 @@ if uploaded_file is None:
     st.markdown("<p style='text-align: center;'>Please upload your service report to begin.</p>", unsafe_allow_html=True)
     
     st.info(
-        """
+        f"""
         **Instructions**
         1.  Go to Reports on CLM and select your **Labor/Service Activity Report**.
             * *CLM Labor Report: ({LABOR_URL})*
