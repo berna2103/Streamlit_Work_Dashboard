@@ -171,7 +171,7 @@ def generate_powerpoint_report(
     slide.shapes.title.text_frame.paragraphs[0].font.name = font_name
     slide.shapes.title.text_frame.paragraphs[0].font.size = Pt(44)
 
-    # --- NEW: Add KPI Cards to Slide 2 ---
+    # --- Add KPI Cards to Slide 2 ---
     card_top_inch = Inches(1.8)
     card_width_inch = Inches(5.5)
     card_height_inch = Inches(1.7)
@@ -181,38 +181,81 @@ def generate_powerpoint_report(
     add_kpi_card(slide, Inches(1.5) + card_width_inch + card_spacing_inch, card_top_inch, card_width_inch, card_height_inch, "Total Service Events (WOs)", f"{kpi_total_events:,}", font_name)
     add_kpi_card(slide, Inches(1.5) + 2*(card_width_inch + card_spacing_inch), card_top_inch, card_width_inch, card_height_inch, "Avg Cost per Event", f"${kpi_avg_tcs:,.2f}", font_name)
     add_kpi_card(slide, Inches(1.5) + 3*(card_width_inch + card_spacing_inch), card_top_inch, card_width_inch, card_height_inch, "Total Labor Hours", f"{kpi_total_hours:,.1f} h", font_name)
-    # --- END NEW KPI CARDS ---
 
-    # Convert and add KPI trend chart (Positioned below cards)
+    # --- Add SINGLE LARGE KPI Trend Chart ---
     charts_top_inch = card_top_inch + card_height_inch + Inches(0.3)
-    img_trend_bytes = io.BytesIO(fig_kpi_trend.to_image(format="png", width=1200, height=750, scale=3))
-    slide.shapes.add_picture(img_trend_bytes, Inches(1), charts_top_inch, Inches(12)) # Position Left
+    img_trend_bytes = io.BytesIO(fig_kpi_trend.to_image(format="png", width=1600, height=900, scale=3))
+    
+    pic_width_inch = Inches(24) # Make it large
+    pic_height_inch = pic_width_inch * (900 / 1600) # Maintain aspect ratio
+    pic_left = (prs.slide_width - pic_width_inch) / 2
+    pic_top = charts_top_inch
+    
+    slide.shapes.add_picture(img_trend_bytes, pic_left, pic_top, width=pic_width_inch, height=pic_height_inch)
 
-    # Convert and add Cost Split chart (Positioned below cards)
-    img_split_bytes = io.BytesIO(fig_cost_split.to_image(format="png", width=1200, height=750, scale=3))
-    slide.shapes.add_picture(img_split_bytes, Inches(13.5), charts_top_inch, Inches(12)) # Position Right
 
-    # --- Slide 3: Performance ---
+    # --- NEW Slide 3: KPI Cost Split Chart ---
     slide_layout = prs.slide_layouts[5] # Title Only layout
     slide = prs.slides.add_slide(slide_layout)
-    slide.shapes.title.text = "Technician & Location Performance"
+    slide.shapes.title.text = "KPI Dashboard: Cost Split (Labor vs. Parts)"
     slide.shapes.title.text_frame.paragraphs[0].font.name = font_name
     slide.shapes.title.text_frame.paragraphs[0].font.size = Pt(44)
 
-    img_tech_bytes = io.BytesIO(fig_tech.to_image(format="png", width=1100, height=900, scale=3))
-    slide.shapes.add_picture(img_tech_bytes, Inches(1), Inches(2.5), Inches(12))
+    # Add Cost Split chart (large)
+    img_split_bytes = io.BytesIO(fig_cost_split.to_image(format="png", width=1600, height=900, scale=3))
 
-    img_loc_bytes = io.BytesIO(fig_loc.to_image(format="png", width=1100, height=900, scale=3))
-    slide.shapes.add_picture(img_loc_bytes, Inches(13.5), Inches(2.5), Inches(12))
+    pic_width_inch = Inches(24) # Make it large
+    pic_height_inch = pic_width_inch * (900 / 1600)
+    pic_left = (prs.slide_width - pic_width_inch) / 2
+    pic_top = (prs.slide_height - pic_height_inch) / 2 + Inches(0.5) # Center vertically below title
+    
+    slide.shapes.add_picture(img_split_bytes, pic_left, pic_top, width=pic_width_inch, height=pic_height_inch)
 
-    # --- Slide 4: Case Analysis - Trend & KPIs ---
+
+    # --- NEW Slide 4: Performance (Technician) ---
+    slide_layout = prs.slide_layouts[5] # Title Only layout
+    slide = prs.slides.add_slide(slide_layout)
+    slide.shapes.title.text = "Technician Performance"
+    slide.shapes.title.text_frame.paragraphs[0].font.name = font_name
+    slide.shapes.title.text_frame.paragraphs[0].font.size = Pt(44)
+
+    # Add Technician chart (large)
+    img_tech_bytes = io.BytesIO(fig_tech.to_image(format="png", width=1200, height=900, scale=3))
+
+    pic_width_inch = Inches(20) # A bit narrower for bar chart
+    pic_height_inch = pic_width_inch * (900 / 1200)
+    pic_left = (prs.slide_width - pic_width_inch) / 2
+    pic_top = (prs.slide_height - pic_height_inch) / 2 + Inches(0.5) 
+
+    slide.shapes.add_picture(img_tech_bytes, pic_left, pic_top, width=pic_width_inch, height=pic_height_inch)
+
+
+    # --- NEW Slide 5: Performance (Location) ---
+    slide_layout = prs.slide_layouts[5] # Title Only layout
+    slide = prs.slides.add_slide(slide_layout)
+    slide.shapes.title.text = "Location Performance"
+    slide.shapes.title.text_frame.paragraphs[0].font.name = font_name
+    slide.shapes.title.text_frame.paragraphs[0].font.size = Pt(44)
+
+    # Add Location chart (large)
+    img_loc_bytes = io.BytesIO(fig_loc.to_image(format="png", width=1200, height=900, scale=3))
+    
+    pic_width_inch = Inches(20) # A bit narrower
+    pic_height_inch = pic_width_inch * (900 / 1200)
+    pic_left = (prs.slide_width - pic_width_inch) / 2
+    pic_top = (prs.slide_height - pic_height_inch) / 2 + Inches(0.5)
+
+    slide.shapes.add_picture(img_loc_bytes, pic_left, pic_top, width=pic_width_inch, height=pic_height_inch)
+
+
+    # --- Slide 6: Case Analysis - Trend & KPIs (was 4) ---
     slide_layout = prs.slide_layouts[5] # Title Only layout
     slide = prs.slides.add_slide(slide_layout)
     slide.shapes.title.text = "Case Analysis: Trend & KPIs (Reactive Service)"
     slide.shapes.title.text_frame.paragraphs[0].font.name = font_name
     slide.shapes.title.text_frame.paragraphs[0].font.size = Pt(44)
 
-    # --- NEW: Add KPI Cards to Slide 4 ---
+    # Add KPI Cards to Slide 6
     card_top_inch_case = Inches(1.8)
     card_width_inch_case = Inches(6.5)
     card_height_inch_case = Inches(1.7)
@@ -221,7 +264,6 @@ def generate_powerpoint_report(
     add_kpi_card(slide, Inches(2.5), card_top_inch_case, card_width_inch_case, card_height_inch_case, "Total Cases (Reactive)", f"{kpi_total_cases:,}", font_name)
     add_kpi_card(slide, Inches(2.5) + card_width_inch_case + card_spacing_inch_case, card_top_inch_case, card_width_inch_case, card_height_inch_case, f"Avg. Cost per Case ({kpi_parts_label})", f"${kpi_avg_cost_case:,.2f}", font_name)
     add_kpi_card(slide, Inches(2.5) + 2*(card_width_inch_case + card_spacing_inch_case), card_top_inch_case, card_width_inch_case, card_height_inch_case, "Avg. Visits per Case", f"{kpi_avg_visits_case:,.1f}", font_name)
-    # --- END NEW KPI CARDS ---
 
     # Add the Case Trend chart (fig_case_trend_total)
     charts_top_inch_case = card_top_inch_case + card_height_inch_case + Inches(0.3)
@@ -240,7 +282,7 @@ def generate_powerpoint_report(
     slide.shapes.add_picture(img_case_bytes, pic_left, pic_top, width=pic_width_inch, height=pic_height_inch)
 
 
-    # --- NEW Slide 5: Case Analysis - Heatmap ---
+    # --- Slide 7: Case Analysis - Heatmap (was 5) ---
     slide_layout = prs.slide_layouts[5] # Title Only layout
     slide = prs.slides.add_slide(slide_layout)
     slide.shapes.title.text = "Case Analysis: New Cases by Location (Heatmap)"
@@ -261,23 +303,45 @@ def generate_powerpoint_report(
     pic_left = (prs.slide_width - pic_width_inch) / 2
     pic_top = Inches(2.0) + ((Inches(15-2.0)) - pic_height_inch) / 2 # Center below title
     slide.shapes.add_picture(img_case_bytes, pic_left, pic_top, width=pic_width_inch, height=pic_height_inch)
-    # --- END NEW SLIDE ---
 
 
-    # --- Slide 6: Parts Deep Dive (was 5) ---
+    # --- NEW Slide 8: Parts Deep Dive (Quantity) ---
     slide_layout = prs.slide_layouts[5] # Title Only layout
     slide = prs.slides.add_slide(slide_layout)
-    slide.shapes.title.text = "Parts Deep Dive: Top 10 by Quantity & Cost"
+    slide.shapes.title.text = "Parts Deep Dive: Top 10 by Quantity"
     slide.shapes.title.text_frame.paragraphs[0].font.name = font_name
     slide.shapes.title.text_frame.paragraphs[0].font.size = Pt(44)
 
-    img_parts_qty_bytes = io.BytesIO(fig_parts_qty.to_image(format="png", width=1100, height=900, scale=3))
-    slide.shapes.add_picture(img_parts_qty_bytes, Inches(1), Inches(2.5), Inches(12))
+    # Add Parts Quantity chart (large)
+    img_parts_qty_bytes = io.BytesIO(fig_parts_qty.to_image(format="png", width=1200, height=900, scale=3))
 
-    img_parts_cost_bytes = io.BytesIO(fig_parts_cost.to_image(format="png", width=1100, height=900, scale=3))
-    slide.shapes.add_picture(img_parts_cost_bytes, Inches(13.5), Inches(2.5), Inches(12))
+    pic_width_inch = Inches(20) # A bit narrower
+    pic_height_inch = pic_width_inch * (900 / 1200)
+    pic_left = (prs.slide_width - pic_width_inch) / 2
+    pic_top = (prs.slide_height - pic_height_inch) / 2 + Inches(0.5)
 
-    # --- Slide 7: Activity Analysis (was 6) ---
+    slide.shapes.add_picture(img_parts_qty_bytes, pic_left, pic_top, width=pic_width_inch, height=pic_height_inch)
+
+
+    # --- NEW Slide 9: Parts Deep Dive (Cost) ---
+    slide_layout = prs.slide_layouts[5] # Title Only layout
+    slide = prs.slides.add_slide(slide_layout)
+    slide.shapes.title.text = "Parts Deep Dive: Top 10 by Cost"
+    slide.shapes.title.text_frame.paragraphs[0].font.name = font_name
+    slide.shapes.title.text_frame.paragraphs[0].font.size = Pt(44)
+
+    # Add Parts Cost chart (large)
+    img_parts_cost_bytes = io.BytesIO(fig_parts_cost.to_image(format="png", width=1200, height=900, scale=3))
+    
+    pic_width_inch = Inches(20) # A bit narrower
+    pic_height_inch = pic_width_inch * (900 / 1200)
+    pic_left = (prs.slide_width - pic_width_inch) / 2
+    pic_top = (prs.slide_height - pic_height_inch) / 2 + Inches(0.5)
+    
+    slide.shapes.add_picture(img_parts_cost_bytes, pic_left, pic_top, width=pic_width_inch, height=pic_height_inch)
+
+
+    # --- Slide 10: Activity Analysis (was 7) ---
     slide_layout = prs.slide_layouts[5] # Title Only layout
     slide = prs.slides.add_slide(slide_layout)
     slide.shapes.title.text = "Activity Analysis: Time Spent by Activity Type"
@@ -286,10 +350,10 @@ def generate_powerpoint_report(
 
     img_activity_bytes = io.BytesIO(fig_activity.to_image(format="png", width=1200, height=900, scale=3))
     # Center the single activity chart
-    pic_width_inch = Inches(14)
+    pic_width_inch = Inches(14) # Pie chart can be a bit smaller
     pic_height_inch = pic_width_inch * (900/1200)
     pic_left = (prs.slide_width - pic_width_inch) / 2
-    pic_top = Inches(2.0) + ((Inches(15-2.0)) - pic_height_inch) / 2
+    pic_top = (prs.slide_height - pic_height_inch) / 2 + Inches(0.5)
     slide.shapes.add_picture(img_activity_bytes, pic_left, pic_top, width=pic_width_inch, height=pic_height_inch)
 
 
@@ -309,7 +373,7 @@ st.sidebar.title('🛠️ Settings')
 st.sidebar.divider()
 
 # Placeholder URL for a Labor Report - adjust this to your actual system
-LABOR_URL = 'https://your_clm_system.com/labor_report_link'
+LABOR_URL = 'https://elekta.my.salesforce.com/00OKf000000ZH75'
 
 # Sidebar file uploader
 uploaded_file = st.sidebar.file_uploader(label='Load Service Report File (Labor & Parts):', key='labor', type=['xlsx', 'xls', 'csv'])
@@ -317,13 +381,21 @@ uploaded_file = st.sidebar.file_uploader(label='Load Service Report File (Labor 
 # --- INSTRUCTION SECTION (if no file is uploaded) ---
 
 if uploaded_file is None:
-    # Customizing the title with color
-    st.markdown("<h1 style='color: rgb(43, 101, 124);'>Load Labor & Service Report</h1>", unsafe_allow_html=True)
-    st.write('**1**. Go to Reports on CLM and select your **Labor/Service Activity Report**.')
-    st.markdown(f"CLM Labor Report: ({LABOR_URL}) ")
-    st.write('**2**. Select **Export** > **Details Only** > Format .csv).')
-    st.write('**3**. Upload your file.')
-    st.write('**4**. Review the generated **Labor & Cost Analysis** below.')
+    # --- UI/UX IMPROVEMENT: Cleaned up landing page ---
+    st.markdown("<h1 style='text-align: center; color: rgb(43, 101, 124);'>📈 Labor & Service Analysis</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center;'>Please upload your service report to begin.</p>", unsafe_allow_html=True)
+    
+    st.info(
+        """
+        **Instructions**
+        1.  Go to Reports on CLM and select your **Labor/Service Activity Report**.
+            * *CLM Labor Report: ({LABOR_URL})*
+        2.  Select **Export** > **Details Only** > Format .csv or .xlsx.
+        3.  Upload your file using the sidebar on the left.
+        4.  Review the generated **Labor & Cost Analysis**.
+        """
+    )
+    # --- END UI/UX IMPROVEMENT ---
 
 # --- DATA PROCESSING AND ANALYSIS ---
 
@@ -367,7 +439,8 @@ if uploaded_file is not None:
                 'Corrective Action': 'corrective_action',
                 'Order Type': 'order_type',
                 'Line Type': 'line_type',
-                'Item': 'item'
+                'Item': 'item',
+                'Work Order: Record Type': 'record_type' # <-- NEWLY ADDED
             }, inplace=True)
 
             full_df = df.copy()
@@ -474,57 +547,78 @@ if uploaded_file is not None:
                 options=all_techs,
                 default=all_techs
             )
+            
+            # --- NEW: Record Type Filter ---
+            st.sidebar.subheader("Work Order Record Type")
+            # Check if the column was successfully renamed/exists
+            if 'record_type' in full_df.columns:
+                full_df['record_type'] = full_df['record_type'].fillna('Unspecified').astype(str)
+                all_record_types = sorted(full_df['record_type'].unique())
+                selected_record_types = st.sidebar.multiselect(
+                    "Select Record Types",
+                    options=all_record_types,
+                    default=all_record_types
+                )
+            else:
+                st.sidebar.warning("Column 'Work Order: Record Type' not found in file.")
+                # Create a placeholder to avoid errors
+                selected_record_types = []
+                all_record_types = []
+            # --- END NEW FILTER ---
+            
             st.sidebar.divider()
-
+            
+            # --- UI/UX IMPROVEMENT: Moved Global Toggles to Sidebar ---
+            st.sidebar.subheader("📊 Global Dashboard Settings")
+            include_parts = st.sidebar.toggle("Include Parts Cost in Total Cost Metrics", value=True)
+            include_discounts = st.sidebar.toggle("Apply Discounts (Show Net Cost)", value=True)
+            st.sidebar.caption(f"**Cost Basis:** {'Net Cost (Actual Paid)' if include_discounts else 'Gross Cost (Full Price)'}")
+            st.sidebar.divider()
+            # --- END UI/UX IMPROVEMENT ---
+            
             # --- NUMERICAL CONVERSION AND DEBUGGING LOGIC ---
-            st.sidebar.subheader("✅ Data Integrity Check")
+            # --- UI/UX IMPROVEMENT: Collapsed Data Integrity Check ---
+            with st.sidebar.expander("✅ View Data Integrity Check", expanded=False):
+                # 1. Total Cost Check
+                full_df['total_cost_temp'] = pd.to_numeric(full_df['total_cost'], errors='coerce')
+                non_numeric_cost = full_df[full_df['total_cost_temp'].isna()].copy()
 
-            # 1. Total Cost Check
-            full_df['total_cost_temp'] = pd.to_numeric(full_df['total_cost'], errors='coerce')
-            non_numeric_cost = full_df[full_df['total_cost_temp'].isna()].copy()
+                # 2. Quantity Check
+                full_df['qty_temp'] = pd.to_numeric(full_df['qty'], errors='coerce')
+                non_numeric_qty = full_df[full_df['qty_temp'].isna()].copy()
 
-            # 2. Quantity Check
-            full_df['qty_temp'] = pd.to_numeric(full_df['qty'], errors='coerce')
-            non_numeric_qty = full_df[full_df['qty_temp'].isna()].copy()
+                # 3. Line Price Per Unit Check
+                full_df['line_price_per_unit_temp'] = pd.to_numeric(full_df['line_price_per_unit'], errors='coerce')
+                non_numeric_ppu = full_df[full_df['line_price_per_unit_temp'].isna()].copy()
 
-            # 3. Line Price Per Unit Check
-            full_df['line_price_per_unit_temp'] = pd.to_numeric(full_df['line_price_per_unit'], errors='coerce')
-            non_numeric_ppu = full_df[full_df['line_price_per_unit_temp'].isna()].copy()
-
-            # 4. Discount % Check
-            full_df['discount_percent_temp'] = pd.to_numeric(full_df['discount_percent'], errors='coerce')
-            non_numeric_discount = full_df[full_df['discount_percent_temp'].isna()].copy()
+                # 4. Discount % Check
+                full_df['discount_percent_temp'] = pd.to_numeric(full_df['discount_percent'], errors='coerce')
+                non_numeric_discount = full_df[full_df['discount_percent_temp'].isna()].copy()
 
 
-            # Final assignment (all non-numeric and NaN values become 0)
-            full_df['total_cost'] = full_df['total_cost_temp'].fillna(0)
-            full_df['qty'] = full_df['qty_temp'].fillna(0)
-            full_df['line_price_per_unit'] = full_df['line_price_per_unit_temp'].fillna(0)
-            full_df['discount_percent'] = full_df['discount_percent_temp'].fillna(0)
+                # Final assignment (all non-numeric and NaN values become 0)
+                full_df['total_cost'] = full_df['total_cost_temp'].fillna(0)
+                full_df['qty'] = full_df['qty_temp'].fillna(0)
+                full_df['line_price_per_unit'] = full_df['line_price_per_unit_temp'].fillna(0)
+                full_df['discount_percent'] = full_df['discount_percent_temp'].fillna(0)
 
-            # Display non-numeric results
-            if not non_numeric_cost.empty:
-                st.sidebar.warning(f"⚠️ **{len(non_numeric_cost)}** Non-Numeric Total Cost Entries Found:")
-                # FIX: use_container_width=True -> width='stretch'
-                st.sidebar.dataframe(non_numeric_cost[['work_order', 'line_type', 'total_cost', 'qty']], width='stretch')
+                # Display non-numeric results
+                if not non_numeric_cost.empty:
+                    st.warning(f"⚠️ **{len(non_numeric_cost)}** Non-Numeric Total Cost Entries Found:")
+                    st.dataframe(non_numeric_cost[['work_order', 'line_type', 'total_cost', 'qty']], width='stretch')
 
-            if not non_numeric_qty.empty:
-                st.sidebar.warning(f"⚠️ **{len(non_numeric_qty)}** Non-Numeric Qty/Hour Entries Found:")
-                # FIX: use_container_width=True -> width='stretch'
-                st.sidebar.dataframe(non_numeric_qty[['work_order', 'line_type', 'total_cost', 'qty']], width='stretch')
+                if not non_numeric_qty.empty:
+                    st.warning(f"⚠️ **{len(non_numeric_qty)}** Non-Numeric Qty/Hour Entries Found:")
+                    st.dataframe(non_numeric_qty[['work_order', 'line_type', 'total_cost', 'qty']], width='stretch')
 
-            if not non_numeric_ppu.empty:
-                st.sidebar.warning(f"⚠️ **{len(non_numeric_ppu)}** Non-Numeric Price Per Unit Entries Found:")
-                # FIX: use_container_width=True -> width='stretch'
-                st.sidebar.dataframe(non_numeric_ppu[['work_order', 'line_type', 'line_price_per_unit']], width='stretch')
+                if not non_numeric_ppu.empty:
+                    st.warning(f"⚠️ **{len(non_numeric_ppu)}** Non-Numeric Price Per Unit Entries Found:")
+                    st.dataframe(non_numeric_ppu[['work_order', 'line_type', 'line_price_per_unit']], width='stretch')
 
-            if not non_numeric_discount.empty:
-                st.sidebar.warning(f"⚠️ **{len(non_numeric_discount)}** Non-Numeric Discount % Entries Found:")
-                # FIX: use_container_width=True -> width='stretch'
-                st.sidebar.dataframe(non_numeric_discount[['work_order', 'line_type', 'discount_percent']], width='stretch')
-
-            st.sidebar.divider()
-            # --- END DEBUGGING STEP ---
+                if not non_numeric_discount.empty:
+                    st.warning(f"⚠️ **{len(non_numeric_discount)}** Non-Numeric Discount % Entries Found:")
+                    st.dataframe(non_numeric_discount[['work_order', 'line_type', 'discount_percent']], width='stretch')
+            # --- END UI/UX IMPROVEMENT ---
 
 
             # Clean up and fill missing order types
@@ -533,11 +627,19 @@ if uploaded_file is not None:
 
 
             # --- APPLY ALL FILTERS TO THE MAIN DATAFRAME ---
+            # Create the record type filter mask
+            if 'record_type' in full_df.columns:
+                record_type_mask = full_df['record_type'].isin(selected_record_types)
+            else:
+                # If column doesn't exist, create a mask that includes everything
+                record_type_mask = pd.Series(True, index=full_df.index)
+
             full_df = full_df[
                 (full_df['created_date'] >= START_DATE_FILTER) &
                 (full_df['created_date'] < END_DATE_FILTER) &
                 (full_df['location'].isin(selected_locations)) &
-                (full_df['technician'].isin(selected_techs))
+                (full_df['technician'].isin(selected_techs)) &
+                (record_type_mask) # <-- NEW FILTER APPLIED
             ].copy()
 
             # Check if any data remains after filtering
@@ -580,24 +682,12 @@ if uploaded_file is not None:
             # --- VISUALIZATION SECTION ---
 
             st.markdown("<h1 style='color: rgb(43, 101, 124);'>📈 Labor & Parts Service Analysis</h1>", unsafe_allow_html=True)
-            st.info(f"Displaying data from **{START_DATE_FILTER.strftime('%Y-%m-%d')}** to **{(END_DATE_FILTER - timedelta(days=1)).strftime('%Y-%m-%d')}** for **{len(selected_locations)}** location(s) and **{len(selected_techs)}** technician(s).")
+            # Note: This info box is not updated to include record types, but it could be
+            st.info(f"Displaying data from **{START_DATE_FILTER.strftime('%Y-%m-%d')}** to **{(END_DATE_FILTER - timedelta(days=1)).strftime('%Y-%m-%d')}** for **{len(selected_locations)}** location(s), **{len(selected_techs)}** technician(s), and **{len(selected_record_types)}** record type(s).")
 
             # --- START: GLOBAL TOGGLES AND COST CALCULATION ---
-            # MOVED FROM KPI TAB: These toggles and calculations now apply to ALL tabs
-
-            with st.container(border=True):
-                st.subheader("📊 Global Dashboard Settings")
-
-                # --- INTERACTIVE TOGGLES ---
-                toggle_col1, toggle_col2 = st.columns(2)
-                with toggle_col1:
-                    include_parts = st.toggle("Include Parts Cost in Total Cost Metrics", value=True)
-                with toggle_col2:
-                    # NEW TOGGLE: Apply/Remove Discount
-                    include_discounts = st.toggle("Apply Discounts (Show Net Cost)", value=True)
-
-                st.caption(f"**Cost Basis:** {'Net Cost (Actual Paid)' if include_discounts else 'Gross Cost (Full Price)'}")
-
+            # --- UI/UX IMPROVEMENT: This container was REMOVED from the main page ---
+            
             # --- CONDITIONAL COST ASSIGNMENT BASED ON DISCOUNT TOGGLE ---
 
             # Calculate line-specific discount factors (1 - Discount %)
@@ -745,7 +835,7 @@ if uploaded_file is not None:
                 with st.container(border=True):
 
                     st.subheader("🎯 Service Insights")
-                    st.caption("Metrics below reflect the global settings selected above.")
+                    st.caption("Metrics below reflect the global settings selected in the sidebar.")
                     st.divider()
 
                     # --- RE-AGGREGATE MONTHLY DATA AFTER TOGGLE DECISION ---
@@ -963,57 +1053,61 @@ if uploaded_file is not None:
 
                 # --- Technician Analysis (Bar Chart) - Always Labor Only ---
                 with tech_col:
-                    st.subheader("Top 10 Technicians by Labor Hours")
+                    # --- UI/UX IMPROVEMENT: Added container ---
+                    with st.container(border=True):
+                        st.subheader("Top 10 Technicians by Labor Hours")
 
-                    df_tech = labor_df.groupby('technician').agg(
-                        total_hours=pd.NamedAgg(column='labor_hours', aggfunc='sum'),
-                        total_cost=pd.NamedAgg(column='total_cost', aggfunc='sum'),
-                        wo_count=pd.NamedAgg(column='work_order', aggfunc='nunique')
-                    ).sort_values(by='total_hours', ascending=True).tail(10).reset_index()
+                        df_tech = labor_df.groupby('technician').agg(
+                            total_hours=pd.NamedAgg(column='labor_hours', aggfunc='sum'),
+                            total_cost=pd.NamedAgg(column='total_cost', aggfunc='sum'),
+                            wo_count=pd.NamedAgg(column='work_order', aggfunc='nunique')
+                        ).sort_values(by='total_hours', ascending=True).tail(10).reset_index()
 
-                    # Assign to fig_tech for PowerPoint
-                    fig_tech = px.bar(
-                        df_tech,
-                        y='technician',
-                        x='total_hours',
-                        hover_data=['total_cost', 'wo_count'],
-                        title='Total Hours Booked (Labor Only)',
-                        orientation='h',
-                        color='total_cost',
-                        color_continuous_scale=px.colors.sequential.Teal
-                    )
-                    # FIX: use_container_width=True -> width='stretch'
-                    st.plotly_chart(fig_tech, width='stretch')
+                        # Assign to fig_tech for PowerPoint
+                        fig_tech = px.bar(
+                            df_tech,
+                            y='technician',
+                            x='total_hours',
+                            hover_data=['total_cost', 'wo_count'],
+                            title='Total Hours Booked (Labor Only)',
+                            orientation='h',
+                            color='total_cost',
+                            color_continuous_scale=px.colors.sequential.Teal
+                        )
+                        # FIX: use_container_width=True -> width='stretch'
+                        st.plotly_chart(fig_tech, width='stretch')
 
                 # --- Location Analysis (Treemap) ---
                 with loc_col:
-                    cost_title_loc = f"Total Cost (Labor + Parts {parts_label_suffix})" if include_parts else f"Total Cost (Labor {parts_label_suffix} Only)"
-                    st.subheader(f"Cost Distribution by Location ({cost_title_loc})")
+                    # --- UI/UX IMPROVEMENT: Added container ---
+                    with st.container(border=True):
+                        cost_title_loc = f"Total Cost (Labor + Parts {parts_label_suffix})" if include_parts else f"Total Cost (Labor {parts_label_suffix} Only)"
+                        st.subheader(f"Cost Distribution by Location ({cost_title_loc})")
 
-                    if include_parts:
-                        # Use the globally filtered, toggle-aware dataframe
-                        df_loc_base = full_df_filtered
-                    else:
-                        df_loc_base = labor_df
+                        if include_parts:
+                            # Use the globally filtered, toggle-aware dataframe
+                            df_loc_base = full_df_filtered
+                        else:
+                            df_loc_base = labor_df
 
-                    df_loc = df_loc_base.groupby('location').agg(
-                        total_cost=pd.NamedAgg(column='total_cost', aggfunc='sum'),
-                    ).reset_index().sort_values(by='total_cost', ascending=False).head(10)
+                        df_loc = df_loc_base.groupby('location').agg(
+                            total_cost=pd.NamedAgg(column='total_cost', aggfunc='sum'),
+                        ).reset_index().sort_values(by='total_cost', ascending=False).head(10)
 
-                    df_loc_hours = labor_df.groupby('location').agg(total_hours=pd.NamedAgg(column='labor_hours', aggfunc='sum')).reset_index()
-                    df_loc = pd.merge(df_loc, df_loc_hours, on='location', how='left').fillna(0)
+                        df_loc_hours = labor_df.groupby('location').agg(total_hours=pd.NamedAgg(column='labor_hours', aggfunc='sum')).reset_index()
+                        df_loc = pd.merge(df_loc, df_loc_hours, on='location', how='left').fillna(0)
 
-                    # Assign to fig_loc for PowerPoint
-                    fig_loc = px.treemap(
-                        df_loc,
-                        path=[px.Constant("All Locations"), 'location'],
-                        values='total_cost',
-                        color='total_hours',
-                        color_continuous_scale='Mint',
-                        title=f'Top 10 Locations by {cost_title_loc}'
-                    )
-                    # FIX: use_container_width=True -> width='stretch'
-                    st.plotly_chart(fig_loc, width='stretch')
+                        # Assign to fig_loc for PowerPoint
+                        fig_loc = px.treemap(
+                            df_loc,
+                            path=[px.Constant("All Locations"), 'location'],
+                            values='total_cost',
+                            color='total_hours',
+                            color_continuous_scale='Mint',
+                            title=f'Top 10 Locations by {cost_title_loc}'
+                        )
+                        # FIX: use_container_width=True -> width='stretch'
+                        st.plotly_chart(fig_loc, width='stretch')
 
             # 4. Efficiency and Activity Deep Dive
             with tab_activity:
@@ -1023,35 +1117,39 @@ if uploaded_file is not None:
                 col_prob, col_act = st.columns(2)
 
                 with col_prob:
-                    st.subheader("Time Spent by Service Activity Type")
-                    df_activity = labor_df.groupby('activity_type').agg(
-                        total_hours=pd.NamedAgg(column='labor_hours', aggfunc='sum'),
-                        wo_count=pd.NamedAgg(column='work_order', aggfunc='nunique')
-                    ).reset_index().sort_values(by='total_hours', ascending=False).head(10)
+                    # --- UI/UX IMPROVEMENT: Added container ---
+                    with st.container(border=True):
+                        st.subheader("Time Spent by Service Activity Type")
+                        df_activity = labor_df.groupby('activity_type').agg(
+                            total_hours=pd.NamedAgg(column='labor_hours', aggfunc='sum'),
+                            wo_count=pd.NamedAgg(column='work_order', aggfunc='nunique')
+                        ).reset_index().sort_values(by='total_hours', ascending=False).head(10)
 
-                    # Assign to fig_activity for PowerPoint
-                    fig_activity = px.pie(
-                        df_activity,
-                        names='activity_type',
-                        values='total_hours',
-                        title='Top 10 Activity Types by Hours',
-                        color_discrete_sequence=px.colors.sequential.Mint_r
-                    )
-                    fig_activity.update_traces(textposition='inside', textinfo='percent+label')
-                    # FIX: use_container_width=True -> width='stretch'
-                    st.plotly_chart(fig_activity, width='stretch')
+                        # Assign to fig_activity for PowerPoint
+                        fig_activity = px.pie(
+                            df_activity,
+                            names='activity_type',
+                            values='total_hours',
+                            title='Top 10 Activity Types by Hours',
+                            color_discrete_sequence=px.colors.sequential.Mint_r
+                        )
+                        fig_activity.update_traces(textposition='inside', textinfo='percent+label')
+                        # FIX: use_container_width=True -> width='stretch'
+                        st.plotly_chart(fig_activity, width='stretch')
 
                 with col_act:
-                    st.subheader("Corrective Action Summary")
-                    df_corrective = labor_df.groupby('corrective_action').agg(
-                        total_cost=pd.NamedAgg(column='total_cost', aggfunc='sum'),
-                        total_hours=pd.NamedAgg(column='labor_hours', aggfunc='sum')
-                    ).reset_index().sort_values(by='total_cost', ascending=False).head(5)
+                    # --- UI/UX IMPROVEMENT: Added container ---
+                    with st.container(border=True):
+                        st.subheader("Corrective Action Summary")
+                        df_corrective = labor_df.groupby('corrective_action').agg(
+                            total_cost=pd.NamedAgg(column='total_cost', aggfunc='sum'),
+                            total_hours=pd.NamedAgg(column='labor_hours', aggfunc='sum')
+                        ).reset_index().sort_values(by='total_cost', ascending=False).head(5)
 
-                    st.write("**Top 5 Corrective Actions by Cost:**")
-                    # FIX: use_container_width=True -> width='stretch'
-                    st.dataframe(df_corrective, width='stretch', hide_index=True)
-                    st.caption("Investigate these actions to find opportunities for process improvement or training.")
+                        st.write("**Top 5 Corrective Actions by Cost:**")
+                        # FIX: use_container_width=True -> width='stretch'
+                        st.dataframe(df_corrective, width='stretch', hide_index=True)
+                        st.caption("Investigate these actions to find opportunities for process improvement or training.")
 
             # 5. Parts Deep Dive
             with tab_parts:
@@ -1063,49 +1161,53 @@ if uploaded_file is not None:
 
                     # --- Top 10 Items by Quantity (Bar Chart) ---
                     with col_top_qty:
-                        st.subheader("Top 10 Parts by Quantity")
+                        # --- UI/UX IMPROVEMENT: Added container ---
+                        with st.container(border=True):
+                            st.subheader("Top 10 Parts by Quantity")
 
-                        df_parts_qty = parts_df.groupby('item').agg(
-                            qty=pd.NamedAgg(column='qty', aggfunc='sum'),
-                            gross_cost=pd.NamedAgg(column='parts_gross_cost', aggfunc='sum')
-                        ).sort_values(by='qty', ascending=True).tail(10).reset_index()
+                            df_parts_qty = parts_df.groupby('item').agg(
+                                qty=pd.NamedAgg(column='qty', aggfunc='sum'),
+                                gross_cost=pd.NamedAgg(column='parts_gross_cost', aggfunc='sum')
+                            ).sort_values(by='qty', ascending=True).tail(10).reset_index()
 
-                        # Assign to fig_parts_qty for PowerPoint
-                        fig_parts_qty = px.bar(
-                            df_parts_qty,
-                            y='item',
-                            x='qty',
-                            hover_data={'gross_cost': ':.2f'},
-                            title='Quantity of Top 10 Parts Used',
-                            orientation='h',
-                            color='gross_cost', # Color by gross cost
-                            color_continuous_scale=px.colors.sequential.Teal # Matching color to Labor Techs
-                        )
-                        # FIX: use_container_width=True -> width='stretch'
-                        st.plotly_chart(fig_parts_qty, width='stretch')
+                            # Assign to fig_parts_qty for PowerPoint
+                            fig_parts_qty = px.bar(
+                                df_parts_qty,
+                                y='item',
+                                x='qty',
+                                hover_data={'gross_cost': ':.2f'},
+                                title='Quantity of Top 10 Parts Used',
+                                orientation='h',
+                                color='gross_cost', # Color by gross cost
+                                color_continuous_scale=px.colors.sequential.Teal # Matching color to Labor Techs
+                            )
+                            # FIX: use_container_width=True -> width='stretch'
+                            st.plotly_chart(fig_parts_qty, width='stretch')
 
                     # --- Top 10 Items by Gross Cost (Bar Chart) ---
                     with col_top_cost:
-                        st.subheader(f"Top 10 Parts by Cost")
+                        # --- UI/UX IMPROVEMENT: Added container ---
+                        with st.container(border=True):
+                            st.subheader(f"Top 10 Parts by Cost")
 
-                        df_parts_cost = parts_df.groupby('item').agg(
-                            gross_cost=pd.NamedAgg(column='parts_gross_cost', aggfunc='sum'),
-                            qty=pd.NamedAgg(column='qty', aggfunc='sum')
-                        ).sort_values(by='gross_cost', ascending=True).tail(10).reset_index()
+                            df_parts_cost = parts_df.groupby('item').agg(
+                                gross_cost=pd.NamedAgg(column='parts_gross_cost', aggfunc='sum'),
+                                qty=pd.NamedAgg(column='qty', aggfunc='sum')
+                            ).sort_values(by='gross_cost', ascending=True).tail(10).reset_index()
 
-                        # Assign to fig_parts_cost for PowerPoint
-                        fig_parts_cost = px.bar(
-                            df_parts_cost,
-                            y='item',
-                            x='gross_cost',
-                            hover_data={'qty': True},
-                            title='Cost of Top 10 Parts',
-                            orientation='h',
-                            color='qty', # Color by quantity
-                            color_continuous_scale=px.colors.sequential.Mint # Matching color to Locations
-                        )
-                        # FIX: use_container_width=True -> width='stretch'
-                        st.plotly_chart(fig_parts_cost, width='stretch')
+                            # Assign to fig_parts_cost for PowerPoint
+                            fig_parts_cost = px.bar(
+                                df_parts_cost,
+                                y='item',
+                                x='gross_cost',
+                                hover_data={'qty': True},
+                                title='Cost of Top 10 Parts',
+                                orientation='h',
+                                color='qty', # Color by quantity
+                                color_continuous_scale=px.colors.sequential.Mint # Matching color to Locations
+                            )
+                            # FIX: use_container_width=True -> width='stretch'
+                            st.plotly_chart(fig_parts_cost, width='stretch')
 
 
             # 6. --- NEW --- Case Analysis
@@ -1119,129 +1221,133 @@ if uploaded_file is not None:
                     st.warning("No data found for reactive service cases after filtering. This may be expected if you only filtered for PMs or your report doesn't have 'Case Number' data.")
                 else:
                     # 4. --- INSIGHTS FIRST ---
-                    st.subheader("Case-Level Insights (Reactive Service Only)")
+                    # --- UI/UX IMPROVEMENT: Added container ---
+                    with st.container(border=True):
+                        st.subheader("Case-Level Insights (Reactive Service Only)")
 
-                    # KPIs are already calculated: total_cases, avg_cost_per_case, etc.
-                    
-                    case_col1, case_col2, case_col3 = st.columns(3)
-                    with case_col1:
-                        st.metric(label="Total Cases", value=f"{total_cases:,}")
-                    with case_col2:
-                        cost_label_suffix = f"({parts_label_suffix})"
-                        st.metric(label=f"Avg. Cost per Case {cost_label_suffix}", value=f"${avg_cost_per_case:,.2f}")
-                        st.markdown(f"<p style='font-size: 12px; color: gray;'>Median: ${median_case_cost:,.2f} | Max: ${max_case_cost:,.2f} | Min: ${min_case_cost:,.2f}</p>", unsafe_allow_html=True)
-                    with case_col3:
-                        st.metric(label="Avg. Visits per Case", value=f"{avg_visits_per_case:,.1f}")
+                        # KPIs are already calculated: total_cases, avg_cost_per_case, etc.
+                        
+                        case_col1, case_col2, case_col3 = st.columns(3)
+                        with case_col1:
+                            st.metric(label="Total Cases", value=f"{total_cases:,}")
+                        with case_col2:
+                            cost_label_suffix = f"({parts_label_suffix})"
+                            st.metric(label=f"Avg. Cost per Case {cost_label_suffix}", value=f"${avg_cost_per_case:,.2f}")
+                            st.markdown(f"<p style='font-size: 12px; color: gray;'>Median: ${median_case_cost:,.2f} | Max: ${max_case_cost:,.2f} | Min: ${min_case_cost:,.2f}</p>", unsafe_allow_html=True)
+                        with case_col3:
+                            st.metric(label="Avg. Visits per Case", value=f"{avg_visits_per_case:,.1f}")
 
                     st.divider()
 
                     # 5. --- GRAPHS SECOND ---
-                    st.subheader("Case Volume Trend")
+                    # --- UI/UX IMPROVEMENT: Added container ---
+                    with st.container(border=True):
+                        st.subheader("Case Volume Trend")
 
-                    trend_view = st.radio( 
-                        "Select Trend View:",
-                        ("Total Cases", "Cases by Location"), # <-- UPDATED LABEL
-                        horizontal=True,
-                        key='case_trend_view' # <-- This key must be unique
-                    )
+                        trend_view = st.radio( 
+                            "Select Trend View:",
+                            ("Total Cases", "Cases by Location"), # <-- UPDATED LABEL
+                            horizontal=True,
+                            key='case_trend_view' # <-- This key must be unique
+                        )
 
-                    # Get the details for each case (first visit date, location)
-                    df_case_details = case_df.groupby('case_number').agg(
-                        first_visit_date=pd.NamedAgg(column='created_date', aggfunc='min'),
-                        location=pd.NamedAgg(column='location', aggfunc='first') # Assumes one location per case
-                    ).reset_index()
+                        # Get the details for each case (first visit date, location)
+                        df_case_details = case_df.groupby('case_number').agg(
+                            first_visit_date=pd.NamedAgg(column='created_date', aggfunc='min'),
+                            location=pd.NamedAgg(column='location', aggfunc='first') # Assumes one location per case
+                        ).reset_index()
 
-                    # Resample by month
-                    df_case_details['visit_month'] = df_case_details['first_visit_date'].dt.to_period('M')
+                        # Resample by month
+                        df_case_details['visit_month'] = df_case_details['first_visit_date'].dt.to_period('M')
 
-                    # --- Generate Trend Chart (for PPT) ---
-                    df_trend_total = df_case_details.groupby('visit_month').agg(
-                        case_count=pd.NamedAgg(column='case_number', aggfunc='nunique')
-                    ).reset_index()
-                    
-                    # --- FIX: Use 'Month_Str' for X-axis ---
-                    df_trend_total['visit_month_ts'] = df_trend_total['visit_month'].dt.to_timestamp()
-                    df_trend_total = df_trend_total.sort_values('visit_month_ts') # Sort by timestamp
-                    df_trend_total['Month_Str'] = df_trend_total['visit_month_ts'].dt.strftime('%b-%Y') # Create string
+                        # --- Generate Trend Chart (for PPT) ---
+                        df_trend_total = df_case_details.groupby('visit_month').agg(
+                            case_count=pd.NamedAgg(column='case_number', aggfunc='nunique')
+                        ).reset_index()
+                        
+                        # --- FIX: Use 'Month_Str' for X-axis ---
+                        df_trend_total['visit_month_ts'] = df_trend_total['visit_month'].dt.to_timestamp()
+                        df_trend_total = df_trend_total.sort_values('visit_month_ts') # Sort by timestamp
+                        df_trend_total['Month_Str'] = df_trend_total['visit_month_ts'].dt.strftime('%b-%Y') # Create string
 
-                    # Assign to fig_case_trend_total for PowerPoint
-                    fig_case_trend_total = px.area(
-                        df_trend_total,
-                        x='Month_Str', # <-- CHANGED
-                        y='case_count',
-                        title='Total New Cases Over Time',
-                        labels={'case_count': 'Number of Cases', 'Month_Str': 'Month'}, # <-- CHANGED
-                        color_discrete_sequence=['rgb(43, 101, 125)']
-                    )
-                    fig_case_trend_total.update_xaxes(type='category')
-                    fig_case_trend_total.update_layout(hovermode="x unified")
-
-
-                    # --- Generate Heatmap (for PPT) ---
-                    df_trend_location_actuals = df_case_details.groupby(['visit_month', 'location']).agg(
-                        case_count=pd.NamedAgg(column='case_number', aggfunc='nunique')
-                    ).reset_index()
-
-                    # --- FIX: Create a complete data scaffold ---
-                    all_months = pd.period_range(
-                        start=df_case_details['visit_month'].min(),
-                        end=df_case_details['visit_month'].max(),
-                        freq='M'
-                    )
-                    all_locations_in_data = df_case_details['location'].unique()
-
-                    new_index = pd.MultiIndex.from_product(
-                        [all_months, all_locations_in_data],
-                        names=['visit_month', 'location']
-                    )
-                    df_trend_complete = pd.DataFrame(index=new_index).reset_index()
-
-                    df_trend_complete = pd.merge(
-                        df_trend_complete,
-                        df_trend_location_actuals,
-                        on=['visit_month', 'location'],
-                        how='left'
-                    )
-
-                    df_trend_complete['case_count'] = df_trend_complete['case_count'].fillna(0)
-                    # --- END FIX ---
-
-                    # --- FIX: Pivot the data for the heatmap ---
-                    df_heatmap_pivot = df_trend_complete.pivot_table(
-                        index='location',
-                        columns='visit_month', # Use the period object for correct sorting
-                        values='case_count',
-                        fill_value=0 # Ensure all cells have a value
-                    )
-
-                    # Format the column names nicely (e.g., "2025-01")
-                    df_heatmap_pivot.columns = df_heatmap_pivot.columns.to_timestamp().strftime('%Y-%m')
-
-                    # Assign to fig_case_heatmap for PowerPoint
-                    fig_case_heatmap = px.imshow(
-                        df_heatmap_pivot, # <-- Pass the PIVOTED data
-                        title='New Cases Heatmap by Location',
-                        labels={'color': 'Number of Cases', 'x': 'Month', 'y': 'Location'}, # 'z' is now 'color'
-                        color_continuous_scale=px.colors.sequential.Blues, # <-- NEW BLUE PALETTE
-                        text_auto=True, # <-- Show the numbers
-                        aspect="auto" # Adjust aspect ratio to fit container
-                    )
-
-                    fig_case_heatmap.update_xaxes(type='category', tickangle=-45) # Angle ticks for better fit
-                    fig_case_heatmap.update_layout(
-                         xaxis=dict(tickfont=dict(size=10)), # Smaller font for x-axis
-                         yaxis=dict(tickfont=dict(size=10))  # Smaller font for y-axis
-                    )
-                    # --- End Heatmap Generation ---
+                        # Assign to fig_case_trend_total for PowerPoint
+                        fig_case_trend_total = px.area(
+                            df_trend_total,
+                            x='Month_Str', # <-- CHANGED
+                            y='case_count',
+                            title='Total New Cases Over Time',
+                            labels={'case_count': 'Number of Cases', 'Month_Str': 'Month'}, # <-- CHANGED
+                            color_discrete_sequence=['rgb(43, 101, 125)']
+                        )
+                        fig_case_trend_total.update_xaxes(type='category')
+                        fig_case_trend_total.update_layout(hovermode="x unified")
 
 
-                    # --- Display the selected chart in Streamlit ---
-                    if trend_view == "Total Cases":
-                        # FIX: use_container_width=True -> width='stretch'
-                        st.plotly_chart(fig_case_trend_total, width='stretch')
-                    else: # "Cases by Location"
-                        # FIX: use_container_width=True -> width='stretch'
-                        st.plotly_chart(fig_case_heatmap, width='stretch')
+                        # --- Generate Heatmap (for PPT) ---
+                        df_trend_location_actuals = df_case_details.groupby(['visit_month', 'location']).agg(
+                            case_count=pd.NamedAgg(column='case_number', aggfunc='nunique')
+                        ).reset_index()
+
+                        # --- FIX: Create a complete data scaffold ---
+                        all_months = pd.period_range(
+                            start=df_case_details['visit_month'].min(),
+                            end=df_case_details['visit_month'].max(),
+                            freq='M'
+                        )
+                        all_locations_in_data = df_case_details['location'].unique()
+
+                        new_index = pd.MultiIndex.from_product(
+                            [all_months, all_locations_in_data],
+                            names=['visit_month', 'location']
+                        )
+                        df_trend_complete = pd.DataFrame(index=new_index).reset_index()
+
+                        df_trend_complete = pd.merge(
+                            df_trend_complete,
+                            df_trend_location_actuals,
+                            on=['visit_month', 'location'],
+                            how='left'
+                        )
+
+                        df_trend_complete['case_count'] = df_trend_complete['case_count'].fillna(0)
+                        # --- END FIX ---
+
+                        # --- FIX: Pivot the data for the heatmap ---
+                        df_heatmap_pivot = df_trend_complete.pivot_table(
+                            index='location',
+                            columns='visit_month', # Use the period object for correct sorting
+                            values='case_count',
+                            fill_value=0 # Ensure all cells have a value
+                        )
+
+                        # Format the column names nicely (e.g., "2025-01")
+                        df_heatmap_pivot.columns = df_heatmap_pivot.columns.to_timestamp().strftime('%Y-%m')
+
+                        # Assign to fig_case_heatmap for PowerPoint
+                        fig_case_heatmap = px.imshow(
+                            df_heatmap_pivot, # <-- Pass the PIVOTED data
+                            title='New Cases Heatmap by Location',
+                            labels={'color': 'Number of Cases', 'x': 'Month', 'y': 'Location'}, # 'z' is now 'color'
+                            color_continuous_scale=px.colors.sequential.Blues, # <-- NEW BLUE PALETTE
+                            text_auto=True, # <-- Show the numbers
+                            aspect="auto" # Adjust aspect ratio to fit container
+                        )
+
+                        fig_case_heatmap.update_xaxes(type='category', tickangle=-45) # Angle ticks for better fit
+                        fig_case_heatmap.update_layout(
+                             xaxis=dict(tickfont=dict(size=10)), # Smaller font for x-axis
+                             yaxis=dict(tickfont=dict(size=10))  # Smaller font for y-axis
+                        )
+                        # --- End Heatmap Generation ---
+
+
+                        # --- Display the selected chart in Streamlit ---
+                        if trend_view == "Total Cases":
+                            # FIX: use_container_width=True -> width='stretch'
+                            st.plotly_chart(fig_case_trend_total, width='stretch')
+                        else: # "Cases by Location"
+                            # FIX: use_container_width=True -> width='stretch'
+                            st.plotly_chart(fig_case_heatmap, width='stretch')
 
                     st.divider() # Add a divider after the graph
 
@@ -1250,34 +1356,38 @@ if uploaded_file is not None:
                     cost_label_suffix = f"({parts_label_suffix})"
 
                     with case_data_col1:
-                        st.subheader("Top 10 Most Expensive Cases")
-                        # FIX: use_container_width=True -> width='stretch'
-                        st.dataframe(
-                            df_case_agg.nlargest(10, 'total_cost_per_case'),
-                            column_config={
-                                "total_cost_per_case": st.column_config.NumberColumn(format="$%.2f"),
-                                "parts_cost_per_case": st.column_config.NumberColumn(f"Parts Cost {cost_label_suffix}", format="$%.2f"),
-                                "labor_cost_per_case": st.column_config.NumberColumn(f"Labor Cost {cost_label_suffix}", format="$%.2f"),
-                                "total_hours_per_case": st.column_config.NumberColumn(format="%.1f h")
-                            },
-                            width='stretch',
-                            hide_index=True
-                        )
+                        # --- UI/UX IMPROVEMENT: Added container ---
+                        with st.container(border=True):
+                            st.subheader("Top 10 Most Expensive Cases")
+                            # FIX: use_container_width=True -> width='stretch'
+                            st.dataframe(
+                                df_case_agg.nlargest(10, 'total_cost_per_case'),
+                                column_config={
+                                    "total_cost_per_case": st.column_config.NumberColumn(format="$%.2f"),
+                                    "parts_cost_per_case": st.column_config.NumberColumn(f"Parts Cost {cost_label_suffix}", format="$%.2f"),
+                                    "labor_cost_per_case": st.column_config.NumberColumn(f"Labor Cost {cost_label_suffix}", format="$%.2f"),
+                                    "total_hours_per_case": st.column_config.NumberColumn(format="%.1f h")
+                                },
+                                width='stretch',
+                                hide_index=True
+                            )
 
                     with case_data_col2:
-                        st.subheader("Top 10 Cases by Most Visits")
-                        # FIX: use_container_width=True -> width='stretch'
-                        st.dataframe(
-                            df_case_agg.nlargest(10, 'visits_per_case'),
-                             column_config={
-                                "total_cost_per_case": st.column_config.NumberColumn(format="$%.2f"),
-                                "parts_cost_per_case": st.column_config.NumberColumn(f"Parts Cost {cost_label_suffix}", format="$%.2f"),
-                                "labor_cost_per_case": st.column_config.NumberColumn(f"Labor Cost {cost_label_suffix}", format="$%.2f"),
-                                "total_hours_per_case": st.column_config.NumberColumn(format="%.1f h")
-                            },
-                            width='stretch',
-                            hide_index=True
-                        )
+                        # --- UI/UX IMPROVEMENT: Added container ---
+                        with st.container(border=True):
+                            st.subheader("Top 10 Cases by Most Visits")
+                            # FIX: use_container_width=True -> width='stretch'
+                            st.dataframe(
+                                df_case_agg.nlargest(10, 'visits_per_case'),
+                                 column_config={
+                                    "total_cost_per_case": st.column_config.NumberColumn(format="$%.2f"),
+                                    "parts_cost_per_case": st.column_config.NumberColumn(f"Parts Cost {cost_label_suffix}", format="$%.2f"),
+                                    "labor_cost_per_case": st.column_config.NumberColumn(f"Labor Cost {cost_label_suffix}", format="$%.2f"),
+                                    "total_hours_per_case": st.column_config.NumberColumn(format="%.1f h")
+                                },
+                                width='stretch',
+                                hide_index=True
+                            )
 
             # 7. Raw Data
             with tab_data:
