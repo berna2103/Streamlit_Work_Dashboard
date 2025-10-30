@@ -18,6 +18,11 @@ import io
 import os
 # --------------------------------------------------
 
+# --- NEW: Add these imports for AI Integration ---
+import ollama
+import json
+# --------------------------------------------------
+
 # --- Define Image Folder for Title Slide ---
 # Create an 'images' folder next to your script and add background images there.
 image_folder = './images'
@@ -123,7 +128,7 @@ def generate_powerpoint_report(
     fig_tech, fig_loc,
     fig_activity,
     fig_parts_qty, fig_parts_cost,
-    fig_case_trend_total, fig_case_heatmap, # <-- UPDATED
+    fig_case_trend_total, fig_case_heatmap,
     # Report Details
     report_title, date_range_str,
     # Main KPIs
@@ -133,7 +138,9 @@ def generate_powerpoint_report(
     kpi_total_events, kpi_avg_tcs,
     kpi_total_hours, kpi_total_parts,
     # Case KPIs
-    kpi_total_cases, kpi_avg_cost_case, kpi_avg_visits_case
+    kpi_total_cases, kpi_avg_cost_case, kpi_avg_visits_case,
+    # NEW TALKING POINT DATA
+    kpi_total_discount, summary_top_parts, summary_top_issues # <-- NEW PARAMETERS
     ):
     """
     Generates a polished PowerPoint presentation from the Streamlit app's figures.
@@ -163,11 +170,10 @@ def generate_powerpoint_report(
     add_custom_textbox(slide, Inches(1.5), Inches(5), Inches(24), Inches(3), font_name, Pt(80), RGBColor(43, 101, 125), True, report_title)
     add_custom_textbox(slide, Inches(1.5), Inches(8), Inches(24), Inches(2), font_name, Pt(40), RGBColor(96, 96, 96), False, f"Data from: {date_range_str}\nGenerated on: {datetime.now().strftime('%Y-%m-%d')}")
 
-
-    # --- Slide 2: KPI Dashboard Trends ---
+    # --- Slide 2: KPI Dashboard Trends (MODIFIED for Talking Points) ---
     slide_layout = prs.slide_layouts[5] # Title Only layout
     slide = prs.slides.add_slide(slide_layout)
-    slide.shapes.title.text = "KPI Dashboard: Trends"
+    slide.shapes.title.text = "KPI Dashboard: Value & Trends"
     slide.shapes.title.text_frame.paragraphs[0].font.name = font_name
     slide.shapes.title.text_frame.paragraphs[0].font.size = Pt(44)
 
@@ -178,23 +184,57 @@ def generate_powerpoint_report(
     card_spacing_inch = Inches(0.8)
     
     add_kpi_card(slide, Inches(1.5), card_top_inch, card_width_inch, card_height_inch, kpi_tcs_label, f"${kpi_total_tcs:,.2f}", font_name)
-    add_kpi_card(slide, Inches(1.5) + card_width_inch + card_spacing_inch, card_top_inch, card_width_inch, card_height_inch, "Total Service Events (WOs)", f"{kpi_total_events:,}", font_name)
-    add_kpi_card(slide, Inches(1.5) + 2*(card_width_inch + card_spacing_inch), card_top_inch, card_width_inch, card_height_inch, "Avg Cost per Event", f"${kpi_avg_tcs:,.2f}", font_name)
+    add_kpi_card(slide, Inches(1.5) + card_width_inch + card_spacing_inch, card_top_inch, card_width_inch, card_height_inch, "Total Service Visits (WOs)", f"{kpi_total_events:,}", font_name)
+    add_kpi_card(slide, Inches(1.5) + 2*(card_width_inch + card_spacing_inch), card_top_inch, card_width_inch, card_height_inch, "Avg Total Cost per Visit", f"${kpi_avg_tcs:,.2f}", font_name)
     add_kpi_card(slide, Inches(1.5) + 3*(card_width_inch + card_spacing_inch), card_top_inch, card_width_inch, card_height_inch, "Total Labor Hours", f"{kpi_total_hours:,.1f} h", font_name)
 
     # --- Add SINGLE LARGE KPI Trend Chart ---
     charts_top_inch = card_top_inch + card_height_inch + Inches(0.3)
-    img_trend_bytes = io.BytesIO(fig_kpi_trend.to_image(format="png", width=1600, height=900, scale=3))
+    img_trend_bytes = io.BytesIO(fig_kpi_trend.to_image(format="png", width=1600, height=750, scale=3)) # Reduced height to fit text box
     
-    pic_width_inch = Inches(24) # Make it large
-    pic_height_inch = pic_width_inch * (900 / 1600) # Maintain aspect ratio
-    pic_left = (prs.slide_width - pic_width_inch) / 2
+    pic_width_inch = Inches(18.5) # Smaller chart to make room for talking points
+    pic_height_inch = pic_width_inch * (750 / 1600)
+    pic_left = Inches(1.5) # Align chart to the left
     pic_top = charts_top_inch
     
     slide.shapes.add_picture(img_trend_bytes, pic_left, pic_top, width=pic_width_inch, height=pic_height_inch)
 
+    # --- NEW: Talking Points for KPI Slide ---
+    bullets_box_left = Inches(1.5) + pic_width_inch + Inches(0.5)
+    bullets_box_width = Inches(prs.slide_width - bullets_box_left - Inches(0.5))
+    bullets_box_top = charts_top_inch
+    
+    textbox = slide.shapes.add_textbox(bullets_box_left, bullets_box_top, bullets_box_width, Inches(7.0))
+    tf = textbox.text_frame
+    tf.margin_left = Inches(0.2)
+    tf.margin_top = Inches(0.2)
+    tf.word_wrap = True
 
-    # --- NEW Slide 3: KPI Cost Split Chart ---
+    p = tf.paragraphs[0]
+    p.text = "QBR Key Value Insights"
+    p.font.name = font_name
+    p.font.size = Pt(20)
+    p.font.bold = True
+    p.font.color.rgb = RGBColor(43, 101, 125)
+    
+    tf.add_paragraph().text = f"Total Cost Absorption: Your agreement shielded you from a gross cost of ${kpi_total_tcs + kpi_total_discount:,.2f} for labor and parts."
+    tf.paragraphs[-1].font.size = Pt(18)
+    tf.paragraphs[-1].font.name = font_name
+    tf.paragraphs[-1].level = 1
+
+    # tf.add_paragraph().text = f"Budget Certainty: The agreement successfully absorbed ${kpi_total_discount:,.2f} in waived costs/discounts alone."
+    # tf.paragraphs[-1].font.size = Pt(18)
+    # tf.paragraphs[-1].font.name = font_name
+    # tf.paragraphs[-1].level = 1
+
+    tf.add_paragraph().text = f"Operational Continuity: We successfully executed {kpi_total_events:,} service visits, representing {kpi_total_hours:,.1f} hours of covered labor, ensuring maximum uptime."
+    tf.paragraphs[-1].font.size = Pt(18)
+    tf.paragraphs[-1].font.name = font_name
+    tf.paragraphs[-1].level = 1
+    # --- END NEW: Talking Points for KPI Slide ---
+
+
+    # --- Slide 3: KPI Cost Split Chart ---
     slide_layout = prs.slide_layouts[5] # Title Only layout
     slide = prs.slides.add_slide(slide_layout)
     slide.shapes.title.text = "KPI Dashboard: Cost Split (Labor vs. Parts)"
@@ -251,7 +291,7 @@ def generate_powerpoint_report(
     # --- Slide 6: Case Analysis - Trend & KPIs (was 4) ---
     slide_layout = prs.slide_layouts[5] # Title Only layout
     slide = prs.slides.add_slide(slide_layout)
-    slide.shapes.title.text = "Case Analysis: Trend & KPIs (Reactive Service)"
+    slide.shapes.title.text = "Case Analysis: Trend (Corrective Service)"
     slide.shapes.title.text_frame.paragraphs[0].font.name = font_name
     slide.shapes.title.text_frame.paragraphs[0].font.size = Pt(44)
 
@@ -261,7 +301,7 @@ def generate_powerpoint_report(
     card_height_inch_case = Inches(1.7)
     card_spacing_inch_case = Inches(1.0)
     
-    add_kpi_card(slide, Inches(2.5), card_top_inch_case, card_width_inch_case, card_height_inch_case, "Total Cases (Reactive)", f"{kpi_total_cases:,}", font_name)
+    add_kpi_card(slide, Inches(2.5), card_top_inch_case, card_width_inch_case, card_height_inch_case, "Total Cases", f"{kpi_total_cases:,}", font_name)
     add_kpi_card(slide, Inches(2.5) + card_width_inch_case + card_spacing_inch_case, card_top_inch_case, card_width_inch_case, card_height_inch_case, f"Avg. Cost per Case ({kpi_parts_label})", f"${kpi_avg_cost_case:,.2f}", font_name)
     add_kpi_card(slide, Inches(2.5) + 2*(card_width_inch_case + card_spacing_inch_case), card_top_inch_case, card_width_inch_case, card_height_inch_case, "Avg. Visits per Case", f"{kpi_avg_visits_case:,.1f}", font_name)
 
@@ -323,38 +363,112 @@ def generate_powerpoint_report(
     slide.shapes.add_picture(img_parts_qty_bytes, pic_left, pic_top, width=pic_width_inch, height=pic_height_inch)
 
 
-    # --- NEW Slide 9: Parts Deep Dive (Cost) ---
+    # --- Slide 9: Parts Deep Dive (Cost) (MODIFIED for Talking Points) ---
     slide_layout = prs.slide_layouts[5] # Title Only layout
     slide = prs.slides.add_slide(slide_layout)
     slide.shapes.title.text = "Parts Deep Dive: Top 10 by Cost"
     slide.shapes.title.text_frame.paragraphs[0].font.name = font_name
     slide.shapes.title.text_frame.paragraphs[0].font.size = Pt(44)
 
-    # Add Parts Cost chart (large)
+    # Add Parts Cost chart (left)
     img_parts_cost_bytes = io.BytesIO(fig_parts_cost.to_image(format="png", width=1200, height=900, scale=3))
     
-    pic_width_inch = Inches(20) # A bit narrower
+    pic_width_inch = Inches(18.0) # Chart on the left
     pic_height_inch = pic_width_inch * (900 / 1200)
-    pic_left = (prs.slide_width - pic_width_inch) / 2
-    pic_top = (prs.slide_height - pic_height_inch) / 2 + Inches(0.5)
+    pic_left = Inches(0.5)
+    pic_top = Inches(2.5) # Lowered to fit title
     
     slide.shapes.add_picture(img_parts_cost_bytes, pic_left, pic_top, width=pic_width_inch, height=pic_height_inch)
 
+    # --- NEW: Talking Points for Parts Slide ---
+    bullets_box_left = Inches(0.5) + pic_width_inch + Inches(0.5)
+    bullets_box_width = Inches(prs.slide_width - bullets_box_left - Inches(0.5))
+    
+    textbox = slide.shapes.add_textbox(bullets_box_left, pic_top, bullets_box_width, Inches(7.0))
+    tf = textbox.text_frame
+    tf.margin_left = Inches(0.2)
+    tf.margin_top = Inches(0.2)
+    tf.word_wrap = True
 
-    # --- Slide 10: Activity Analysis (was 7) ---
+    p = tf.paragraphs[0]
+    p.text = "High-Risk Component Absorption"
+    p.font.name = font_name
+    p.font.size = Pt(20)
+    p.font.bold = True
+    p.font.color.rgb = RGBColor(54, 164, 179)
+
+    if summary_top_parts:
+        first_part = summary_top_parts[0]
+        tf.add_paragraph().text = f"Top Risk Component: The **'{first_part['item']}'** component was replaced **{first_part['qty']:.0f} time(s)**, representing a gross cost of **${first_part['gross_cost']:,.2f}** absorbed by your contract."
+        tf.paragraphs[-1].font.size = Pt(18)
+        tf.paragraphs[-1].level = 1
+
+        tf.add_paragraph().text = f"Unscheduled Risk: The Top 5 parts replaced collectively represent **${sum(p['gross_cost'] for p in summary_top_parts):,.2f}** in potential unbudgeted capital expense."
+        tf.paragraphs[-1].font.size = Pt(18)
+        tf.paragraphs[-1].level = 1
+    else:
+        tf.add_paragraph().text = "No high-cost parts were used in this period, indicating excellent component health."
+        tf.paragraphs[-1].font.size = Pt(18)
+        tf.paragraphs[-1].level = 1
+
+    tf.add_paragraph().text = "Proactive Planning: This data confirms the service agreement is successfully converting critical component failures into zero-cost operational events."
+    tf.paragraphs[-1].font.size = Pt(18)
+    tf.paragraphs[-1].font.name = font_name
+    tf.paragraphs[-1].level = 1
+    # --- END NEW: Talking Points for Parts Slide ---
+
+
+    # --- Slide 10: Activity Analysis (MODIFIED for Talking Points) ---
     slide_layout = prs.slide_layouts[5] # Title Only layout
     slide = prs.slides.add_slide(slide_layout)
-    slide.shapes.title.text = "Activity Analysis: Time Spent by Activity Type"
+    slide.shapes.title.text = "Activity Analysis: Time Spent & Recurring Issues"
     slide.shapes.title.text_frame.paragraphs[0].font.name = font_name
     slide.shapes.title.text_frame.paragraphs[0].font.size = Pt(44)
 
     img_activity_bytes = io.BytesIO(fig_activity.to_image(format="png", width=1200, height=900, scale=3))
-    # Center the single activity chart
-    pic_width_inch = Inches(14) # Pie chart can be a bit smaller
+    # Place pie chart on the left
+    pic_width_inch = Inches(14)
     pic_height_inch = pic_width_inch * (900/1200)
-    pic_left = (prs.slide_width - pic_width_inch) / 2
+    pic_left = Inches(0.5)
     pic_top = (prs.slide_height - pic_height_inch) / 2 + Inches(0.5)
     slide.shapes.add_picture(img_activity_bytes, pic_left, pic_top, width=pic_width_inch, height=pic_height_inch)
+
+    # --- NEW: Talking Points for Activity Slide (Corrective Action) ---
+    bullets_box_left = Inches(0.5) + pic_width_inch + Inches(0.5)
+    bullets_box_width = Inches(prs.slide_width - bullets_box_left - Inches(0.5))
+    
+    textbox = slide.shapes.add_textbox(bullets_box_left, pic_top + Inches(1.0), bullets_box_width, Inches(7.0)) # Adjusted top
+    tf = textbox.text_frame
+    tf.margin_left = Inches(0.2)
+    tf.margin_top = Inches(0.2)
+    tf.word_wrap = True
+
+    p = tf.paragraphs[0]
+    p.text = "Proactive Focus: Top Recurring Issues"
+    p.font.name = font_name
+    p.font.size = Pt(20)
+    p.font.bold = True
+    p.font.color.rgb = RGBColor(96, 96, 96)
+
+    if summary_top_issues:
+        first_issue = summary_top_issues[0]
+        tf.add_paragraph().text = f"Top Repeat Issue: **'{first_issue['corrective_action']}'** occurred **{first_issue['Total_Occurrences']:.0f} times**, indicating a trend we can address."
+        tf.paragraphs[-1].font.size = Pt(18)
+        tf.paragraphs[-1].level = 1
+        
+        tf.add_paragraph().text = f"Target for Improvement: This issue consumed **${first_issue['Total_Cost_Absorbed']:,.2f}** of covered cost and resource time this quarter."
+        tf.paragraphs[-1].font.size = Pt(18)
+        tf.paragraphs[-1].level = 1
+    else:
+        tf.add_paragraph().text = "No recurring issues detected, indicating strong system and operational health."
+        tf.paragraphs[-1].font.size = Pt(18)
+        tf.paragraphs[-1].level = 1
+    
+    tf.add_paragraph().text = "Next Steps: Let’s collaborate on **operator training** or **procedure review** to eliminate this recurring issue next quarter, maximizing machine availability."
+    tf.paragraphs[-1].font.size = Pt(18)
+    tf.paragraphs[-1].font.name = font_name
+    tf.paragraphs[-1].level = 1
+    # --- END NEW: Talking Points for Activity Slide ---
 
 
     # --- Save presentation to memory ---
@@ -364,6 +478,84 @@ def generate_powerpoint_report(
     return ppt_io.getvalue()
 # ----------------------------------------------
 
+# --- NEW: AI Narrative Generation Function ---
+def get_ai_narrative(kpi_data: dict, model_name: str):
+    """
+    Generates a QBR narrative focused on validating the value and benefits 
+    the customer received from their existing service agreement.
+    """
+    try:
+        # Convert data to a JSON string for the prompt
+        data_str = json.dumps(kpi_data, indent=2)
+
+        # This prompt focuses on reporting contract value and proactive planning,
+        # with strict instructions to use NO special formatting.
+        prompt = f"""
+You are an expert service analyst leading a Quarterly Service Review (QBR) for a valued customer who ALREADY has a full service agreement.
+Your goal is to use the provided data to demonstrate the tangible value, risk mitigation, and operational continuity the agreement delivered during the last quarter/period.
+
+Your audience consists of:
+1.  Administrators (Budget/Risk Owners)
+2.  Oncologists/Physicians (Throughput Owners)
+3.  Physicists/Service Users (Technical Owners)
+
+Here is the summary of the service activity and financial metrics collected under the service agreement:
+{data_str}
+
+**Instructions (Strict Output Format):**
+1.  **DO NOT USE ANY MARKDOWN SYNTAX.** This includes asterisks (*), bolding (**), hyphens for lists (-), or number signs (#). Use line breaks only.
+2.  All sections must be clear headings followed by brief, concise sentences.
+3.  **Executive Summary:** Start by confirming the total value delivered—specifically, contrast the high Gross Cost the customer avoided with the fixed cost they paid. Conclude that the agreement performed exactly as designed.
+4.  **For the Administrator (Financial Shield):**
+    * Financial Protection: Use the Total Cost and high-cost anomalies to illustrate the large, volatile expenses that were successfully absorbed by the fixed contract fee. State clearly: "You exchanged unpredictable risk for budget certainty."
+    * Efficiency: Use the Total Service Events and Total Labor Hours to show how frequently the contract provided "free" support, translating high activity into high value delivered.
+5.  **For the Oncologist/Physician (Uptime Guarantee):**
+    * Proactive Care: Focus on the Total Service Events and the Total Labor Hours. Explain that the high number of Service Visits and hours represents successful interventions that minimized machine downtime, directly ensuring maximum patient throughput.
+    * Response Efficiency: Focus on the Avg Labor Cost per Service Visit as a proxy for the quick, efficient response time facilitated by the contract (no need for purchase order delays).
+6.  **For the Physicist/Service User (Technical Risk Mitigation):**
+    * Risk Management: Highlight the Top 5 Expensive Parts replaced. Explain that replacing these high-value, critical components under the contract successfully mitigated major technical failure risks at zero variable cost.
+    * Next Steps: Use the recurring issue data to identify one area for proactive planning (e.g., operator training or PM scheduling optimization) to reduce future reactive events even further.
+7.  **Conclusion:** Summarize the value and transition the conversation to planning for the next period.
+8.  Ensure the entire output is structured using only plain text and new lines.
+"""
+
+        # Use streaming for a better user experience
+        response_stream = ollama.chat(
+            model=model_name,
+            messages=[{'role': 'user', 'content': prompt}],
+            stream=True
+        )
+
+        return response_stream
+
+    except ollama.ResponseError as e:
+        error_message = f"""
+        ❌ Ollama Error:
+        The model {model_name} likely does not exist or Ollama failed to process the request.
+        1. Check model name: Ensure {model_name} is a model you have pulled (e.g., ollama pull {model_name}).
+        2. Check the model's capabilities: The model may not be capable of processing the detailed instructions. Try llama3.
+        
+        Details: {e}
+        """
+        def error_generator():
+            yield error_message
+        return error_generator()
+        
+    except Exception as e:
+        # Handle connection errors if Ollama isn't running
+        error_message = f"""
+        ❌ Connection Error: Could not connect to Ollama.
+
+        Please ensure Ollama is running on your local machine by opening a terminal and running:
+        ollama serve
+
+        Details: {e}
+        """
+        # Return a generator that yields the error message
+        def error_generator():
+            yield error_message
+        return error_generator()
+# -------------------------------------------
 # --- CONFIGURATION AND SIDEBAR SETUP ---
 
 # Use a specific page title for clarity in a multi-page app
@@ -605,19 +797,19 @@ if uploaded_file is not None:
                 # Display non-numeric results
                 if not non_numeric_cost.empty:
                     st.warning(f"⚠️ **{len(non_numeric_cost)}** Non-Numeric Total Cost Entries Found:")
-                    st.dataframe(non_numeric_cost[['work_order', 'line_type', 'total_cost', 'qty']], width='stretch')
+                    st.dataframe(non_numeric_cost[['work_order', 'line_type', 'total_cost', 'qty']], use_container_width=True)
 
                 if not non_numeric_qty.empty:
                     st.warning(f"⚠️ **{len(non_numeric_qty)}** Non-Numeric Qty/Hour Entries Found:")
-                    st.dataframe(non_numeric_qty[['work_order', 'line_type', 'total_cost', 'qty']], width='stretch')
+                    st.dataframe(non_numeric_qty[['work_order', 'line_type', 'total_cost', 'qty']], use_container_width=True)
 
                 if not non_numeric_ppu.empty:
                     st.warning(f"⚠️ **{len(non_numeric_ppu)}** Non-Numeric Price Per Unit Entries Found:")
-                    st.dataframe(non_numeric_ppu[['work_order', 'line_type', 'line_price_per_unit']], width='stretch')
+                    st.dataframe(non_numeric_ppu[['work_order', 'line_type', 'line_price_per_unit']], use_container_width=True)
 
                 if not non_numeric_discount.empty:
                     st.warning(f"⚠️ **{len(non_numeric_discount)}** Non-Numeric Discount % Entries Found:")
-                    st.dataframe(non_numeric_discount[['work_order', 'line_type', 'discount_percent']], width='stretch')
+                    st.dataframe(non_numeric_discount[['work_order', 'line_type', 'discount_percent']], use_container_width=True)
             # --- END UI/UX IMPROVEMENT ---
 
 
@@ -649,29 +841,29 @@ if uploaded_file is not None:
 
             # Define Line Type for filtering
             if 'line_type' in full_df.columns:
-                    full_df['line_type'] = full_df['line_type'].astype(str).str.lower()
+                 full_df['line_type'] = full_df['line_type'].astype(str).str.lower()
 
-                    # 1. Identify Labor Lines (Labor total_cost is used as-is for labor, qty is hours)
-                    labor_filter = full_df['line_type'].str.contains('labor|time|service', na=False)
-                    labor_df = full_df[labor_filter].copy()
-                    labor_df['labor_hours'] = labor_df['qty']
+                 # 1. Identify Labor Lines (Labor total_cost is used as-is for labor, qty is hours)
+                 labor_filter = full_df['line_type'].str.contains('labor|time|service', na=False)
+                 labor_df = full_df[labor_filter].copy()
+                 labor_df['labor_hours'] = labor_df['qty']
 
-                    # Labor Gross Cost: We assume the original 'total_cost' (Total Line Price) is the Gross price.
-                    labor_df['labor_gross_cost'] = labor_df['total_cost']
+                 # Labor Gross Cost: We assume the original 'total_cost' (Total Line Price) is the Gross price.
+                 labor_df['labor_gross_cost'] = labor_df['total_cost']
 
-                    # 2. Identify Parts Lines
-                    parts_filter = ~labor_filter
-                    parts_df = full_df[parts_filter].copy()
-                    parts_df.dropna(subset=['item'], inplace=True)
+                 # 2. Identify Parts Lines
+                 parts_filter = ~labor_filter
+                 parts_df = full_df[parts_filter].copy()
+                 parts_df.dropna(subset=['item'], inplace=True)
 
-                    # Parts Gross Cost: Calculated from PPU * QTY
-                    parts_df['parts_gross_cost'] = parts_df['line_price_per_unit'] * parts_df['qty']
+                 # Parts Gross Cost: Calculated from PPU * QTY
+                 parts_df['parts_gross_cost'] = parts_df['line_price_per_unit'] * parts_df['qty']
 
             else:
-                    st.warning("Warning: 'Line Type' column not found. Cannot separate labor and parts costs.")
-                    labor_df = full_df.copy()
-                    parts_df = pd.DataFrame()
-                    labor_df['labor_hours'] = labor_df['qty']
+                 st.warning("Warning: 'Line Type' column not found. Cannot separate labor and parts costs.")
+                 labor_df = full_df.copy()
+                 parts_df = pd.DataFrame()
+                 labor_df['labor_hours'] = labor_df['qty']
 
 
             # Drop rows where essential data is missing for time-based analysis
@@ -686,7 +878,6 @@ if uploaded_file is not None:
             st.info(f"Displaying data from **{START_DATE_FILTER.strftime('%Y-%m-%d')}** to **{(END_DATE_FILTER - timedelta(days=1)).strftime('%Y-%m-%d')}** for **{len(selected_locations)}** location(s), **{len(selected_techs)}** technician(s), and **{len(selected_record_types)}** record type(s).")
 
             # --- START: GLOBAL TOGGLES AND COST CALCULATION ---
-            # --- UI/UX IMPROVEMENT: This container was REMOVED from the main page ---
             
             # --- CONDITIONAL COST ASSIGNMENT BASED ON DISCOUNT TOGGLE ---
 
@@ -721,10 +912,9 @@ if uploaded_file is not None:
             # --- END: GLOBAL TOGGLES AND COST CALCULATION ---
 
             
-            # --- START: PRE-CALCULATE ALL KPIs FOR PPT ---
-            # This section calculates all KPIs needed for both the Streamlit UI and the PowerPoint
-            # in a scope accessible to the 'Generate PowerPoint' button.
-
+            # --- START: PRE-CALCULATE ALL KPIs FOR PPT AND AI ---
+            # This section calculates all KPIs needed for both the Streamlit UI and the PowerPoint/AI
+            
             # --- Main KPI Calculations (from tab_kpi) ---
             total_labor_current_cost = labor_df['total_cost'].sum()
             total_parts_current_cost = parts_df['total_cost'].sum()
@@ -738,7 +928,9 @@ if uploaded_file is not None:
                 wo_count=pd.NamedAgg(column='work_order', aggfunc='first'),
                 created_date=pd.NamedAgg(column='created_date', aggfunc='first')
             ).reset_index()
-            total_events = df_wo_count['work_order'].nunique()
+            # Renaming the unit of measure for consistency in KPIs
+            total_events = df_wo_count['work_order'].nunique() 
+            event_noun = "Service Visit (WO)" # <-- NEW: Consistent Terminology
 
             if include_parts:
                 total_tcs = total_labor_current_cost + total_parts_current_cost
@@ -747,7 +939,13 @@ if uploaded_file is not None:
                 total_tcs = total_labor_current_cost
                 tcs_label = f"Total Cost (Labor {parts_label_suffix} Only)"
 
+            # --- NEW: Calculate Average Costs ---
+            # 1. Avg Total Cost per Event (Service Visit)
             avg_tcs_per_event = total_tcs / total_events if total_events > 0 else 0
+            
+            # 2. Avg Labor Only Cost per Event (Service Visit)
+            avg_labor_only_per_event = total_labor_current_cost / total_events if total_events > 0 else 0
+
 
             if include_parts:
                 base_df_for_stats = full_df_filtered
@@ -803,18 +1001,36 @@ if uploaded_file is not None:
                     median_case_cost = df_case_agg['total_cost_per_case'].median()
                     max_case_cost = df_case_agg['total_cost_per_case'].max()
                     min_case_cost = df_case_agg['total_cost_per_case'].min()
+
+            # --- Corrective Action Summary for PPT (Must be calculated outside of tab_activity for PPT button) ---
+            df_corrective_analysis = full_df_filtered.groupby(['location', 'corrective_action']).agg(
+                occurrence_count=pd.NamedAgg(column='work_order', aggfunc='nunique'),
+                total_cost_for_action=pd.NamedAgg(column='total_cost', aggfunc='sum')
+            ).reset_index()
+
+            # Sum the occurrences across all locations to find the top issues
+            df_issue_summary = df_corrective_analysis.groupby('corrective_action').agg(
+                Total_Occurrences=pd.NamedAgg(column='occurrence_count', aggfunc='sum'),
+                Total_Cost_Absorbed=pd.NamedAgg(column='total_cost_for_action', aggfunc='sum')
+            ).reset_index().sort_values(by='Total_Occurrences', ascending=False)
+            
+            # Filter out 'Unspecified' and only show the top 10
+            df_issue_summary = df_issue_summary[
+                ~df_issue_summary['corrective_action'].astype(str).str.contains('unspecified|n/a', case=False, na=False)
+            ].head(10)
             
             # --- END: PRE-CALCULATE ALL KPIs ---
 
 
             # --- START: TABS ---
-            tab_kpi, tab_performance, tab_activity, tab_parts, tab_case, tab_data = st.tabs([
+            tab_kpi, tab_performance, tab_activity, tab_parts, tab_case, tab_data, tab_ai_narrative = st.tabs([ # <-- ADDED tab_ai_narrative
                 "🎯 KPI Dashboard",
                 "👨‍🔧 Performance",
                 "⚡ Activity",
                 "📦 Parts Deep Dive",
-                "🕵️ Case Analysis", # <-- NEW TAB
-                "Raw Data"
+                "🕵️ Case Analysis",
+                "Raw Data",
+                "💡 AI Narrative" # <-- NEW TAB NAME
             ])
 
             # --- Initialize Figure Variables ---
@@ -878,10 +1094,10 @@ if uploaded_file is not None:
                     df_monthly_combined['Month_Str'] = df_monthly_combined['created_date'].dt.strftime('%b-%Y')
                     # --- END FIX ---
 
-                    # --- KPI LAYOUT ---
+                    # --- KPI LAYOUT (Modified) ---
                     # Uses pre-calculated KPIs from the global scope
 
-                    # Row 1: Core Costs and Events
+                    # Row 1: Core Costs and Visits
                     col1, col2, col3, col4 = st.columns(4)
                     with col1: st.metric(label=tcs_label, value=f"${total_tcs:,.2f}")
                     with col2:
@@ -896,23 +1112,27 @@ if uploaded_file is not None:
                         context_label_parts = "Gross" if include_discounts else "Net"
                         st.markdown(f"<p style='font-size: 12px; color: gray;'>{context_label_parts}: ${context_cost_parts:,.2f}</p>", unsafe_allow_html=True)
 
-                    with col4: st.metric(label="Total Service Events (WOs)", value=f"{total_events:,}")
+                    with col4: st.metric(label="Total Service Visits (WOs)", value=f"{total_events:,}") # <-- RENAMED
 
                     # Row 2: Efficiency, Volume, and Discount Metrics
                     if include_discounts:
                         col5, col6, col7, col8 = st.columns(4)
                         with col5:
-                            st.metric(label="Avg Cost per Event", value=f"${avg_tcs_per_event:,.2f}")
+                            st.metric(label=f"Avg Total Cost per {event_noun}", value=f"${avg_tcs_per_event:,.2f}") # <-- RENAMED
                             st.markdown(f"<p style='font-size: 12px; color: gray;'>Med: ${median_cost:,.2f} | Max: ${max_cost:,.2f} | Min: ${min_cost:,.2f}</p>", unsafe_allow_html=True)
-                        with col6: st.metric(label="Total Labor Hours", value=f"{total_hours:,.1f} h")
+                        with col6: 
+                            st.metric(label=f"Avg Labor Cost per {event_noun}", value=f"${avg_labor_only_per_event:,.2f}") # <-- NEW METRIC
+                            st.markdown(f"<p style='font-size: 12px; color: gray;'>Total Hours: {total_hours:,.1f} h</p>", unsafe_allow_html=True)
                         with col7: st.metric(label="Total Parts Replaced (Qty)", value=f"{total_parts_replaced:,.0f}")
                         with col8: st.metric(label="Total Discount Given", value=f"${total_discount_given:,.2f}")
                     else:
                         col5, col6, col7 = st.columns(3)
                         with col5:
-                            st.metric(label="Avg Cost per Event", value=f"${avg_tcs_per_event:,.2f}")
+                            st.metric(label=f"Avg Total Cost per {event_noun}", value=f"${avg_tcs_per_event:,.2f}") # <-- RENAMED
                             st.markdown(f"<p style='font-size: 12px; color: gray;'>Med: ${median_cost:,.2f} | Max: ${max_cost:,.2f} | Min: ${min_cost:,.2f}</p>", unsafe_allow_html=True)
-                        with col6: st.metric(label="Total Labor Hours", value=f"{total_hours:,.1f} h")
+                        with col6: 
+                            st.metric(label=f"Avg Labor Cost per {event_noun}", value=f"${avg_labor_only_per_event:,.2f}") # <-- NEW METRIC
+                            st.markdown(f"<p style='font-size: 12px; color: gray;'>Total Hours: {total_hours:,.1f} h</p>", unsafe_allow_html=True)
                         with col7: st.metric(label="Total Parts Replaced (Qty)", value=f"{total_parts_replaced:,.0f}")
 
                     st.divider()
@@ -956,12 +1176,12 @@ if uploaded_file is not None:
                     fig_parts_trend.update_xaxes(type='category') # Treat as category
                     fig_parts_trend.update_layout(hovermode="x unified")
                     # FIX: use_container_width=True -> width='stretch'
-                    st.plotly_chart(fig_parts_trend, width='stretch')
+                    st.plotly_chart(fig_parts_trend, use_container_width=True)
 
                     st.divider()
 
                     # --- MAIN TREND (COST, HOURS, EVENTS) ---
-                    st.markdown("### Total Cost, Hours, & Events Trend")
+                    st.markdown("### Total Cost, Hours, & Service Visit Trend")
 
                     if include_parts:
                         metric_options = ['Total_Cost', 'Labor_Cost', 'Total_Hours', 'Total_Events']
@@ -984,7 +1204,7 @@ if uploaded_file is not None:
                     elif selected_metric == 'Total_Hours':
                         st.info(f"Total Labor Hours: **{total_hours:,.1f} h**.")
                     elif selected_metric == 'Total_Events':
-                        st.info(f"Total Service Events (WOs): **{total_events:,}**.")
+                        st.info(f"Total Service Visits (WOs): **{total_events:,}**.")
 
                     
                     # --- FIX: Use 'Month_Str' for X-axis ---
@@ -1012,7 +1232,7 @@ if uploaded_file is not None:
                     fig_trend.update_xaxes(type='category') # Treat as category
                     fig_trend.update_layout(hovermode="x unified")
                     # FIX: use_container_width=True -> width='stretch'
-                    st.plotly_chart(fig_trend, width='stretch')
+                    st.plotly_chart(fig_trend, use_container_width=True)
 
                     st.subheader("Cost Split: Labor vs. Parts")
 
@@ -1041,7 +1261,7 @@ if uploaded_file is not None:
                     )
                     fig_split.update_xaxes(type='category') # Treat as category
                     # FIX: use_container_width=True -> width='stretch'
-                    st.plotly_chart(fig_split, width='stretch')
+                    st.plotly_chart(fig_split, use_container_width=True)
 
 
             # 3. Technician and Location Performance
@@ -1068,14 +1288,14 @@ if uploaded_file is not None:
                             df_tech,
                             y='technician',
                             x='total_hours',
-                            hover_data=['total_cost', 'wo_count'],
+                            hover_data={'total_cost': True, 'wo_count': True},
                             title='Total Hours Booked (Labor Only)',
                             orientation='h',
                             color='total_cost',
                             color_continuous_scale=px.colors.sequential.Teal
                         )
                         # FIX: use_container_width=True -> width='stretch'
-                        st.plotly_chart(fig_tech, width='stretch')
+                        st.plotly_chart(fig_tech, use_container_width=True)
 
                 # --- Location Analysis (Treemap) ---
                 with loc_col:
@@ -1107,16 +1327,17 @@ if uploaded_file is not None:
                             title=f'Top 10 Locations by {cost_title_loc}'
                         )
                         # FIX: use_container_width=True -> width='stretch'
-                        st.plotly_chart(fig_loc, width='stretch')
+                        st.plotly_chart(fig_loc, use_container_width=True)
 
             # 4. Efficiency and Activity Deep Dive
             with tab_activity:
                 st.title("🔍 Efficiency and Activity Deep Dive (Labor Only)")
-                st.caption(f"Costs shown as **{parts_label_suffix} Cost** based on global settings.")
+                st.caption(f"Costs shown as **{parts_label_suffix} Cost** based on global settings. Corrective Action analysis below includes **all** line types.")
 
-                col_prob, col_act = st.columns(2)
+                col_act_pie, col_issue_analysis = st.columns(2)
 
-                with col_prob:
+                # --- COLUMN 1: Activity Pie Chart (Hours) ---
+                with col_act_pie:
                     # --- UI/UX IMPROVEMENT: Added container ---
                     with st.container(border=True):
                         st.subheader("Time Spent by Service Activity Type")
@@ -1134,22 +1355,32 @@ if uploaded_file is not None:
                             color_discrete_sequence=px.colors.sequential.Mint_r
                         )
                         fig_activity.update_traces(textposition='inside', textinfo='percent+label')
-                        # FIX: use_container_width=True -> width='stretch'
-                        st.plotly_chart(fig_activity, width='stretch')
+                        st.plotly_chart(fig_activity, use_container_width=True)
 
-                with col_act:
+                # --- COLUMN 2: Corrective Action Analysis (Top Issues) ---
+                with col_issue_analysis:
                     # --- UI/UX IMPROVEMENT: Added container ---
                     with st.container(border=True):
-                        st.subheader("Corrective Action Summary")
-                        df_corrective = labor_df.groupby('corrective_action').agg(
-                            total_cost=pd.NamedAgg(column='total_cost', aggfunc='sum'),
-                            total_hours=pd.NamedAgg(column='labor_hours', aggfunc='sum')
-                        ).reset_index().sort_values(by='total_cost', ascending=False).head(5)
+                        st.subheader("Top Corrective Actions & Repeat Issues")
+                        
+                        # df_issue_summary is already calculated globally, just need to display it.
 
-                        st.write("**Top 5 Corrective Actions by Cost:**")
-                        # FIX: use_container_width=True -> width='stretch'
-                        st.dataframe(df_corrective, width='stretch', hide_index=True)
-                        st.caption("Investigate these actions to find opportunities for process improvement or training.")
+                        # Calculate Total Cost per Occurrence (Cost / WO)
+                        df_corrective_analysis['avg_cost_per_wo'] = df_corrective_analysis['total_cost_for_action'] / df_corrective_analysis['occurrence_count']
+
+                        st.write("##### Top 10 Repeated Issues (by WO Count)")
+                        st.dataframe(
+                            df_issue_summary, 
+                            column_config={
+                                "Total_Occurrences": st.column_config.NumberColumn("WO Count"),
+                                "Total_Cost_Absorbed": st.column_config.NumberColumn(f"Total Cost Absorbed ({parts_label_suffix})", format="$%.2f")
+                            },
+                            use_container_width=True,
+                            hide_index=True
+                        )
+                        
+                        st.caption("Use these repeated issues to discuss proactive training or parts stocking with the customer.")
+
 
             # 5. Parts Deep Dive
             with tab_parts:
@@ -1182,7 +1413,7 @@ if uploaded_file is not None:
                                 color_continuous_scale=px.colors.sequential.Teal # Matching color to Labor Techs
                             )
                             # FIX: use_container_width=True -> width='stretch'
-                            st.plotly_chart(fig_parts_qty, width='stretch')
+                            st.plotly_chart(fig_parts_qty, use_container_width=True)
 
                     # --- Top 10 Items by Gross Cost (Bar Chart) ---
                     with col_top_cost:
@@ -1207,7 +1438,7 @@ if uploaded_file is not None:
                                 color_continuous_scale=px.colors.sequential.Mint # Matching color to Locations
                             )
                             # FIX: use_container_width=True -> width='stretch'
-                            st.plotly_chart(fig_parts_cost, width='stretch')
+                            st.plotly_chart(fig_parts_cost, use_container_width=True)
 
 
             # 6. --- NEW --- Case Analysis
@@ -1344,10 +1575,10 @@ if uploaded_file is not None:
                         # --- Display the selected chart in Streamlit ---
                         if trend_view == "Total Cases":
                             # FIX: use_container_width=True -> width='stretch'
-                            st.plotly_chart(fig_case_trend_total, width='stretch')
+                            st.plotly_chart(fig_case_trend_total, use_container_width=True)
                         else: # "Cases by Location"
                             # FIX: use_container_width=True -> width='stretch'
-                            st.plotly_chart(fig_case_heatmap, width='stretch')
+                            st.plotly_chart(fig_case_heatmap, use_container_width=True)
 
                     st.divider() # Add a divider after the graph
 
@@ -1368,7 +1599,7 @@ if uploaded_file is not None:
                                     "labor_cost_per_case": st.column_config.NumberColumn(f"Labor Cost {cost_label_suffix}", format="$%.2f"),
                                     "total_hours_per_case": st.column_config.NumberColumn(format="%.1f h")
                                 },
-                                width='stretch',
+                                use_container_width=True,
                                 hide_index=True
                             )
 
@@ -1380,13 +1611,13 @@ if uploaded_file is not None:
                             st.dataframe(
                                 df_case_agg.nlargest(10, 'visits_per_case'),
                                  column_config={
-                                    "total_cost_per_case": st.column_config.NumberColumn(format="$%.2f"),
-                                    "parts_cost_per_case": st.column_config.NumberColumn(f"Parts Cost {cost_label_suffix}", format="$%.2f"),
-                                    "labor_cost_per_case": st.column_config.NumberColumn(f"Labor Cost {cost_label_suffix}", format="$%.2f"),
-                                    "total_hours_per_case": st.column_config.NumberColumn(format="%.1f h")
-                                },
-                                width='stretch',
-                                hide_index=True
+                                     "total_cost_per_case": st.column_config.NumberColumn(format="$%.2f"),
+                                     "parts_cost_per_case": st.column_config.NumberColumn(f"Parts Cost {cost_label_suffix}", format="$%.2f"),
+                                     "labor_cost_per_case": st.column_config.NumberColumn(f"Labor Cost {cost_label_suffix}", format="$%.2f"),
+                                     "total_hours_per_case": st.column_config.NumberColumn(format="%.1f h")
+                                 },
+                                 use_container_width=True,
+                                 hide_index=True
                             )
 
             # 7. Raw Data
@@ -1407,6 +1638,103 @@ if uploaded_file is not None:
 
                 st.caption(f"Showing **{full_df.shape[0]}** lines after all filters have been applied.")
 
+            # 8. --- NEW: AI NARRATIVE TAB ---
+            with tab_ai_narrative:
+                st.title("💡 AI-Powered Value Story")
+                st.markdown(
+                    """
+                    This panel uses a locally running **Ollama** model (requires `ollama serve` and the specified model pulled)
+                    to analyze your filtered KPIs. It generates a tailored, persuasive narrative demonstrating the value 
+                    of a service agreement to key stakeholders (Administrators, Oncologists, and Physicists).
+                    """
+                )
+                st.divider()
+
+                # Allow user to select their running model
+                model_name = st.text_input(
+                    "Enter your Ollama Model Name:",
+                    value="gemma3",  # <-- UPDATED DEFAULT MODEL
+                    help="Ensure this model is running in your local Ollama instance (e.g., 'gemma3', 'llama3', 'mistral')."
+                )
+
+                if st.button("Generate AI Narrative", type="primary", use_container_width=True):
+                    if full_df_filtered.empty:
+                        st.error("No data to analyze. Please adjust filters or upload a valid file.")
+                    else:
+                        with st.spinner(f"Connecting to Ollama and generating insights with '{model_name}'..."):
+                            try:
+                                # 1. Aggregate Top Parts Data (use gross cost for "sticker shock" value)
+                                # Only do this if parts_df is not empty
+                                if not parts_df.empty:
+                                    top_parts_data = parts_df.groupby('item').agg(
+                                        total_cost=pd.NamedAgg(column='parts_gross_cost', aggfunc='sum'),
+                                        total_qty=pd.NamedAgg(column='qty', aggfunc='sum')
+                                    ).nlargest(5, 'total_cost').reset_index()
+                                    # Rename columns for PPT input consistency
+                                    top_parts_data.rename(columns={'total_cost': 'gross_cost', 'total_qty': 'qty'}, inplace=True)
+                                else:
+                                    top_parts_data = pd.DataFrame(columns=['item', 'gross_cost', 'qty'])
+
+
+                                # 2. Aggregate Top Cases Data (using pre-calculated df_case_agg)
+                                # Only do this if df_case_agg is not empty
+                                if not df_case_agg.empty:
+                                    top_cases_data = df_case_agg.nlargest(5, 'total_cost_per_case')[[
+                                        'case_number', 'total_cost_per_case', 'visits_per_case', 'total_hours_per_case'
+                                    ]]
+                                else:
+                                     top_cases_data = pd.DataFrame(columns=['case_number', 'total_cost_per_case', 'visits_per_case', 'total_hours_per_case'])
+
+                                # 3. Aggregate Top Issues Data (for AI prompt - based on df_issue_summary)
+                                top_issues_data_for_ai = df_issue_summary.head(5).copy()
+
+                                # 4. Consolidate all KPIs into a dictionary
+                                kpi_data_for_ai = {
+                                    "period_start_date": str(start_date_input),
+                                    "period_end_date": str(end_date_input),
+                                    "cost_basis_note": f"Costs are calculated as {parts_label_suffix} Cost.",
+                                    "tcs_label": tcs_label,
+                                    "total_cost": total_tcs,
+                                    "total_labor_cost": total_labor_current_cost,
+                                    "total_parts_cost": total_parts_current_cost,
+                                    "total_service_events": total_events,
+                                    "average_cost_per_event": avg_tcs_per_event,
+                                    "average_labor_cost_per_event": avg_labor_only_per_event, # <-- NEW KPI FOR AI
+                                    "total_labor_hours": total_hours,
+                                    "total_parts_replaced_qty": total_parts_replaced,
+                                    "total_discount_given": total_discount_given,
+                                    "total_reactive_cases": total_cases,
+                                    "average_cost_per_case": avg_cost_per_case,
+                                    "average_visits_per_case": avg_visits_per_case,
+                                    "top_5_expensive_parts": top_parts_data.to_dict('records'),
+                                    "top_5_expensive_cases": top_cases_data.to_dict('records'),
+                                    "top_5_recurring_issues": top_issues_data_for_ai.to_dict('records') # <-- NEW KPI FOR AI
+                                }
+
+                                # 5. Call the AI function
+                                stream = get_ai_narrative(kpi_data_for_ai, model_name)
+
+                                # 6. Stream the response
+                                st.subheader(f"AI-Generated Narrative (using {model_name})")
+                                with st.container(border=True):
+                                    # st.write_stream displays the streaming output
+                                    def stream_handler():
+                                        for chunk in stream:
+                                            # Check if the chunk is from the chat response
+                                            if 'message' in chunk and 'content' in chunk['message']:
+                                                yield chunk['message']['content']
+                                            # Check if it's the custom error message
+                                            elif isinstance(chunk, str):
+                                                yield chunk
+
+                                    st.write_stream(stream_handler)
+
+                            except Exception as e:
+                                st.error(f"An error occurred while communicating with Ollama: {e}")
+                                import traceback
+                                st.code(traceback.format_exc())
+            # --- END: AI NARRATIVE TAB ---
+
 
             # --- ADD POWERPOINT DOWNLOAD BUTTON (Must be INSIDE the main try block) ---
             st.sidebar.divider()
@@ -1419,6 +1747,26 @@ if uploaded_file is not None:
                         f"{START_DATE_FILTER.strftime('%Y-%m-%d')} to "
                         f"{(END_DATE_FILTER - timedelta(days=1)).strftime('%Y-%m-%d')}"
                     )
+                    
+                    # --- Aggregate Final Data for PPT ---
+                    
+                    # 1. Top 5 Most Expensive Parts (for Parts Slide)
+                    # Use the df_parts_cost calculated in tab_parts (ensure to calculate this before the PPT button is pressed)
+                    if not parts_df.empty:
+                        # Re-calculate to ensure it's fresh after filtering
+                        df_parts_cost_final = parts_df.groupby('item').agg(
+                            gross_cost=pd.NamedAgg(column='parts_gross_cost', aggfunc='sum'),
+                            qty=pd.NamedAgg(column='qty', aggfunc='sum')
+                        ).sort_values(by='gross_cost', ascending=False).head(5).reset_index()
+                        summary_top_parts_for_ppt = df_parts_cost_final.to_dict('records')
+                    else:
+                        summary_top_parts_for_ppt = []
+
+                    # 2. Top 5 Most Frequent Corrective Actions (for Activity Slide)
+                    summary_top_issues_for_ppt = df_issue_summary.head(5).to_dict('records')
+                    
+                    # --- END Aggregate Final Data for PPT ---
+
 
                     # Call the generation function with all your figures and KPIs
                     ppt_data = generate_powerpoint_report(
@@ -1449,7 +1797,11 @@ if uploaded_file is not None:
                         # Case KPIs
                         kpi_total_cases=total_cases,
                         kpi_avg_cost_case=avg_cost_per_case,
-                        kpi_avg_visits_case=avg_visits_per_case
+                        kpi_avg_visits_case=avg_visits_per_case,
+                        # NEW TALKING POINT DATA
+                        kpi_total_discount=total_discount_given, 
+                        summary_top_parts=summary_top_parts_for_ppt,
+                        summary_top_issues=summary_top_issues_for_ppt
                     )
 
                 # Provide the download button
